@@ -5,7 +5,7 @@ import { createServer } from "http";
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
-// Эти строки исправляют ошибку "__dirname is not defined" для ES-модулей
+// Исправление ошибки __dirname для ES-модулей
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -76,14 +76,14 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  if (process.env.NODE_ENV === "production") {
+  // В Railway всегда будет production
+  if (process.env.NODE_ENV === "production" || process.env.RAILWAY_ENVIRONMENT) {
     serveStatic(app);
   } else {
     const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);
   }
 
-  // Используем порт из переменных Railway
   const port = parseInt(process.env.PORT || "5000", 10);
   httpServer.listen(
     {
