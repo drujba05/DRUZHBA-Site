@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/lib/cart";
-import { ChevronLeft, ChevronRight, X, ZoomIn, Flame, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, ZoomIn, Flame, Sparkles, ShoppingCart } from "lucide-react";
 
 interface ProductCardProps {
   product: Product;
@@ -29,15 +29,6 @@ export function ProductCard({ product }: ProductCardProps) {
   const [selectedColor, setSelectedColor] = useState(colorOptions[0] || "");
 
   const allPhotos = [product.main_photo, ...(product.additional_photos || [])].filter(Boolean);
-
-  useEffect(() => {
-    if (imageViewerOpen && allPhotos.length > 1) {
-      allPhotos.forEach((src) => {
-        const img = new Image();
-        img.src = src;
-      });
-    }
-  }, [imageViewerOpen, allPhotos]);
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % allPhotos.length);
@@ -62,15 +53,6 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const handleBuy = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (quantity % 6 !== 0) {
-      toast({
-        title: "Ошибка",
-        description: "Заказ возможен только кратно 6 пар",
-        variant: "destructive",
-      });
-      return;
-    }
-
     const formData = new FormData(e.target as HTMLFormElement);
     const customerName = formData.get("name") as string;
     const customerPhone = formData.get("phone") as string;
@@ -95,318 +77,119 @@ export function ProductCard({ product }: ProductCardProps) {
         setOrderOpen(false);
         toast({
           title: "Заказ оформлен!",
-          description: `Менеджер свяжется с вами для подтверждения заказа на ${quantity} пар.`,
-        });
-      } else {
-        toast({
-          title: "Ошибка",
-          description: "Не удалось отправить заказ. Попробуйте позже.",
-          variant: "destructive",
+          description: "Менеджер свяжется с вами в ближайшее время.",
         });
       }
     } catch (error) {
-      toast({
-        title: "Ошибка",
-        description: "Не удалось отправить заказ. Попробуйте позже.",
-        variant: "destructive",
-      });
+      console.error(error);
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "В наличии": return "bg-green-500 hover:bg-green-600";
-      case "Нет в наличии": return "bg-red-500 hover:bg-red-600";
-      case "Ожидается поступление": return "bg-yellow-500 hover:bg-yellow-600";
-      default: return "bg-gray-500";
+      case "В наличии": return "bg-green-500";
+      case "Нет в наличии": return "bg-red-500";
+      default: return "bg-yellow-500";
     }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      viewport={{ once: true }}
-    >
-      <Card className="h-full flex flex-col overflow-hidden group shadow-md hover:shadow-xl transition-all duration-300 border-0 bg-white">
-        <div 
-          className="relative aspect-[4/3] overflow-hidden bg-gray-100 cursor-pointer"
-          onClick={() => {
-            setCurrentImageIndex(0);
-            setImageViewerOpen(true);
-          }}
-        >
-          <img 
-            src={product.main_photo} 
-            alt={product.name}
-            loading="lazy"
-            decoding="async"
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-          <div className="absolute bottom-2 left-2 bg-black/50 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-            <ZoomIn className="h-4 w-4" />
-          </div>
-          {allPhotos.length > 1 && (
-            <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full">
-              +{allPhotos.length - 1} фото
-            </div>
-          )}
+    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} viewport={{ once: true }}>
+      <Card className="h-full flex flex-col overflow-hidden shadow-md border-0 bg-white">
+        <div className="relative aspect-[4/3] overflow-hidden bg-gray-100 cursor-pointer" onClick={() => setImageViewerOpen(true)}>
+          <img src={product.main_photo} alt={product.name} className="w-full h-full object-cover" />
+          <div className="absolute bottom-2 left-2 bg-black/50 text-white rounded-full p-1.5"><ZoomIn className="h-4 w-4" /></div>
         </div>
 
-        <Dialog open={imageViewerOpen} onOpenChange={setImageViewerOpen}>
-          <DialogContent className="max-w-4xl p-0 bg-black/95 border-0" aria-describedby={undefined}>
-            <DialogHeader className="sr-only">
-              <DialogTitle>{product.name}</DialogTitle>
+        {/* ОСНОВНОЕ ОКНО ТОВАРА (ДИАЛОГ ПОСЛЕ НАЖАТИЯ КУПИТЬ) */}
+        <Dialog open={orderOpen} onOpenChange={setOrderOpen}>
+          <DialogContent className="w-[95%] max-w-[425px] rounded-lg bg-white p-6 text-black border shadow-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-black">{product.name}</DialogTitle>
+              <DialogDescription className="text-gray-600">Арт: {product.sku}</DialogDescription>
             </DialogHeader>
-            <button 
-              onClick={() => setImageViewerOpen(false)}
-              className="absolute top-4 right-4 z-50 bg-white/20 hover:bg-white/40 rounded-full p-2 transition-colors"
-            >
-              <X className="h-5 w-5 text-white" />
-            </button>
-            
-            <div className="relative flex items-center justify-center min-h-[70vh] group/viewer overflow-hidden touch-pan-y">
-              <motion.img 
-                key={currentImageIndex}
-                src={allPhotos[currentImageIndex]} 
-                alt={`${product.name} - фото ${currentImageIndex + 1}`}
-                className="max-w-full max-h-[80vh] object-contain cursor-grab active:cursor-grabbing"
-                initial={{ opacity: 0, x: 50 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -50 }}
-                transition={{ duration: 0.25 }}
-                drag={allPhotos.length > 1 ? "x" : false}
-                dragConstraints={{ left: 0, right: 0 }}
-                dragElastic={0.3}
-                onDragEnd={(_, info) => {
-                  if (info.offset.x < -50) {
-                    nextImage();
-                  } else if (info.offset.x > 50) {
-                    prevImage();
-                  }
-                }}
-              />
-              
-              {allPhotos.length > 1 && (
-                <>
-                  <button 
-                    onClick={prevImage}
-                    className="absolute left-4 bg-green-500 hover:bg-green-600 rounded-full p-3 transition-all shadow-lg opacity-0 group-hover/viewer:opacity-100 active:opacity-100 focus:opacity-100"
-                  >
-                    <ChevronLeft className="h-8 w-8 text-white" />
-                  </button>
-                  <button 
-                    onClick={nextImage}
-                    className="absolute right-4 bg-green-500 hover:bg-green-600 rounded-full p-3 transition-all shadow-lg opacity-0 group-hover/viewer:opacity-100 active:opacity-100 focus:opacity-100"
-                  >
-                    <ChevronRight className="h-8 w-8 text-white" />
-                  </button>
-                  
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                    {allPhotos.map((_, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setCurrentImageIndex(index)}
-                        className={`w-3 h-3 rounded-full transition-colors ${
-                          index === currentImageIndex ? 'bg-green-500' : 'bg-white/60'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-            
-            <div className="p-4 text-white text-center">
-              <p className="font-semibold">{product.name}</p>
-              <p className="text-sm text-white/70">{currentImageIndex + 1} из {allPhotos.length}</p>
-            </div>
+            <form onSubmit={handleBuy} className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label className="text-black font-bold">Количество пар</Label>
+                <div className="flex items-center justify-center gap-4 bg-gray-50 p-2 rounded-lg border">
+                  <Button type="button" variant="outline" onClick={() => setQuantity(Math.max(6, quantity - 6))}>-</Button>
+                  <span className="text-2xl font-bold text-black">{quantity}</span>
+                  <Button type="button" variant="outline" onClick={() => setQuantity(quantity + 6)}>+</Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-black font-bold">Ваше имя</Label>
+                <Input name="name" placeholder="Имя" className="bg-white text-black border-gray-300" required />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-black font-bold">Телефон</Label>
+                <Input name="phone" placeholder="+996..." className="bg-white text-black border-gray-300" required />
+              </div>
+              <Button type="submit" className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg">
+                ПОДТВЕРДИТЬ ЗАКАЗ
+              </Button>
+            </form>
           </DialogContent>
         </Dialog>
 
-        {/* Cart Color Selection Dialog */}
+        {/* Выбор цвета */}
         <Dialog open={cartDialogOpen} onOpenChange={setCartDialogOpen}>
-          <DialogContent className="sm:max-w-[300px]">
-            <DialogHeader>
-              <DialogTitle>Выберите цвет</DialogTitle>
-              <DialogDescription>
-                {product.name}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-              <Select value={selectedColor} onValueChange={setSelectedColor}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Выберите цвет" />
-                </SelectTrigger>
-                <SelectContent>
-                  {colorOptions.map((color) => (
-                    <SelectItem key={color} value={color}>
-                      {color}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <DialogFooter>
-              <Button onClick={handleAddToCart} className="w-full">
-                Добавить в корзину
-              </Button>
-            </DialogFooter>
+          <DialogContent className="bg-white text-black rounded-lg">
+            <DialogHeader><DialogTitle>Выберите цвет</DialogTitle></DialogHeader>
+            <Select value={selectedColor} onValueChange={setSelectedColor}>
+              <SelectTrigger className="bg-white text-black border-gray-300">
+                <SelectValue placeholder="Цвет" />
+              </SelectTrigger>
+              <SelectContent className="bg-white text-black">
+                {colorOptions.map((color) => <SelectItem key={color} value={color}>{color}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Button onClick={handleAddToCart} className="w-full bg-blue-600 text-white">Добавить</Button>
           </DialogContent>
         </Dialog>
-        
-        <CardHeader className="pb-2 p-3">
-          <div className="flex flex-wrap gap-1 mb-2">
-            <Badge className={`${getStatusColor(product.status)} text-white border-0 text-[10px]`}>
-              {product.status}
-            </Badge>
-            {product.is_bestseller && (
-              <Badge className="bg-orange-500 text-white border-0 gap-1 text-[10px]">
-                <Flame className="h-3 w-3" /> Хит
-              </Badge>
-            )}
-            {product.is_new && (
-              <Badge className="bg-green-500 text-white border-0 gap-1 text-[10px]">
-                <Sparkles className="h-3 w-3" /> Новинка
-              </Badge>
-            )}
+
+        <CardHeader className="p-3">
+          <div className="flex gap-1 mb-1">
+            <Badge className={`${getStatusColor(product.status)} text-white`}>{product.status}</Badge>
           </div>
-          <div className="flex flex-col gap-1">
-            <CardTitle className="text-[15px] font-semibold line-clamp-2 leading-tight" title={product.name}>
-              {product.name}
-            </CardTitle>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-lg font-bold text-gray-800">
-                {product.price}
-              </span>
-              <span className="text-sm font-bold" style={{ color: '#374151' }}>сом/пара</span>
-            </div>
-          </div>
+          <CardTitle className="text-sm font-bold text-black line-clamp-2">{product.name}</CardTitle>
+          <div className="text-lg font-black text-blue-700">{product.price} сом/пара</div>
         </CardHeader>
-        
-        <CardContent className="p-3 pt-0 flex-grow text-xs space-y-2">
-          {product.comment && (
-            <div className="rounded-md p-2" style={{ backgroundColor: 'rgba(88, 28, 135, 0.9)' }}>
-              <p className="text-[11px]" style={{ color: '#ffffff' }}>{product.comment}</p>
-            </div>
-          )}
+
+        <CardContent className="p-3 pt-0 flex-grow space-y-2">
           <div className="grid grid-cols-2 gap-2">
-            <div className="border border-gray-300 rounded-md p-2 bg-gray-50 text-center">
-              <p className="text-[11px] font-bold" style={{ color: '#374151' }}>Размеры</p>
-              <p className="font-bold text-foreground text-[12px]">{product.sizes}</p>
-            </div>
-            <div className="border border-gray-300 rounded-md p-2 bg-gray-50 text-center">
-              <p className="text-[11px] font-bold" style={{ color: '#374151' }}>Мин. заказ</p>
-              <p className="font-bold text-foreground text-[12px]">{product.min_order_quantity} пар</p>
-            </div>
-          </div>
-          <div className="rounded-md p-2" style={{ backgroundColor: 'rgba(126, 34, 206, 0.85)' }}>
-            <p className="text-[11px] line-clamp-1" style={{ color: '#ffffff' }}>{product.colors}</p>
-          </div>
-          <div className="border border-gray-300 rounded-md p-2 bg-gray-50 text-center">
-            <p className="text-[11px] font-bold" style={{ color: '#374151' }}>В коробке</p>
-            <p className="font-bold text-foreground text-[12px]">{product.pairs_per_box || 12} пар</p>
+             <div className="bg-gray-50 border p-2 rounded text-center">
+                <p className="text-[10px] text-gray-500">Размеры</p>
+                <p className="font-bold text-black">{product.sizes}</p>
+             </div>
+             <div className="bg-gray-50 border p-2 rounded text-center">
+                <p className="text-[10px] text-gray-500">Мин. заказ</p>
+                <p className="font-bold text-black">{product.min_order_quantity}п.</p>
+             </div>
           </div>
         </CardContent>
 
-        <CardFooter className="p-3 pt-1 grid grid-cols-2 gap-2">
-          <Button 
-            className="h-10 text-sm bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
-            disabled={product.status === "Нет в наличии"}
-            onClick={handleAddToCart}
-          >
+        <CardFooter className="p-3 grid grid-cols-2 gap-2">
+          <Button variant="outline" className="border-blue-600 text-blue-600 font-bold" onClick={handleAddToCart}>
             В корзину
           </Button>
-          <Dialog open={orderOpen} onOpenChange={setOrderOpen}>
-            <DialogTrigger asChild>
-              <Button 
-                className="h-10 text-sm" 
-                disabled={product.status === "Нет в наличии"}
-              >
-                {product.status === "Ожидается поступление" ? "Предзаказ" : "Купить"}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Оформление заказа</DialogTitle>
-                <DialogDescription>
-                  {product.name} (Арт: {product.sku})
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleBuy} className="grid gap-4 py-4">
-                {colorOptions.length > 1 && (
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="color" className="text-right">
-                      Цвет
-                    </Label>
-                    <Select value={selectedColor} onValueChange={setSelectedColor}>
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Выберите цвет" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {colorOptions.map((color) => (
-                          <SelectItem key={color} value={color}>
-                            {color}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">Количество пар</Label>
-                  <div className="flex items-center justify-center gap-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="lg"
-                      className="h-12 w-12 text-xl font-bold"
-                      onClick={() => setQuantity(Math.max(6, quantity - 6))}
-                      disabled={quantity <= 6}
-                      data-testid="quantity-decrease"
-                    >
-                      −
-                    </Button>
-                    <div className="text-center min-w-[80px]">
-                      <span className="text-3xl font-bold" data-testid="quantity-display">{quantity}</span>
-                      <p className="text-xs text-muted-foreground">пар</p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="lg"
-                      className="h-12 w-12 text-xl font-bold"
-                      onClick={() => setQuantity(quantity + 6)}
-                      data-testid="quantity-increase"
-                    >
-                      +
-                    </Button>
-                  </div>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Имя
-                  </Label>
-                  <Input id="name" name="name" placeholder="Ваше имя" className="col-span-3" required />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="phone" className="text-right">
-                    Телефон
-                  </Label>
-                  <Input id="phone" name="phone" placeholder="+996..." className="col-span-3" required />
-                </div>
-                <DialogFooter className="flex-col sm:flex-row gap-2">
-                  <Button type="button" variant="outline" onClick={handleAddToCart} className="w-full">
-                    В корзину
-                  </Button>
-                  <Button type="submit" className="w-full">Купить сейчас</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Button className="bg-blue-600 text-white font-bold" onClick={() => setOrderOpen(true)}>
+            КУПИТЬ
+          </Button>
         </CardFooter>
       </Card>
+      
+      {/* Просмотр фото */}
+      <Dialog open={imageViewerOpen} onOpenChange={setImageViewerOpen}>
+        <DialogContent className="max-w-4xl p-0 bg-black/90 border-0">
+          <div className="relative flex items-center justify-center min-h-[60vh]">
+            <img src={allPhotos[currentImageIndex]} className="max-h-[80vh] object-contain" />
+            <Button className="absolute right-2 bg-white/20 text-white" onClick={nextImage}><ChevronRight /></Button>
+            <Button className="absolute left-2 bg-white/20 text-white" onClick={prevImage}><ChevronLeft /></Button>
+            <Button className="absolute top-2 right-2 text-white" onClick={() => setImageViewerOpen(false)}><X /></Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }
