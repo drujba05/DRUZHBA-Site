@@ -1,57 +1,56 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { Product } from './products';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { Product } from "./products";
 
-interface CartItem extends Product {
+export interface CartItem extends Product {
   quantity: number;
   selectedColor?: string;
 }
 
 interface CartStore {
   items: CartItem[];
-  addItem: (product: Product, quantity: number, selectedColor?: string) => void;
-  removeItem: (productId: string, selectedColor?: string) => void;
-  updateQuantity: (productId: string, quantity: number, selectedColor?: string) => void;
+  addItem: (product: Product, step: number) => void;
+  removeItem: (productId: string, step: number) => void;
+  updateItemColor: (productId: string, color: string) => void;
   clearCart: () => void;
-  totalItems: () => number;
-  totalPrice: () => number;
 }
 
 export const useCart = create<CartStore>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       items: [],
-      addItem: (product, quantity, selectedColor) => {
-        const items = get().items;
-        const existingItem = items.find((item) => item.id === product.id && item.selectedColor === selectedColor);
-
-        if (existingItem) {
-          set({
-            items: items.map((item) =>
-              item.id === product.id && item.selectedColor === selectedColor
-                ? { ...item, quantity: item.quantity + quantity }
-                : item
-            ),
-          });
-        } else {
-          set({ items: [...items, { ...product, quantity, selectedColor }] });
-        }
-      },
-      removeItem: (productId, selectedColor) =>
-        set({ items: get().items.filter((item) => !(item.id === productId && item.selectedColor === selectedColor)) }),
-      updateQuantity: (productId, quantity, selectedColor) =>
-        set({
-          items: get().items.map((item) =>
-            item.id === productId && item.selectedColor === selectedColor ? { ...item, quantity } : item
-          ),
+      addItem: (product, step) =>
+        set((state) => {
+          const existingItem = state.items.find((i) => i.id === product.id);
+          if (existingItem) {
+            return {
+              items: state.items.map((i) =>
+                i.id === product.id ? { ...i, quantity: i.quantity + step } : i
+              ),
+            };
+          }
+          return { items: [...state.items, { ...product, quantity: step, selectedColor: "" }] };
         }),
+      removeItem: (productId, step) =>
+        set((state) => {
+          const existingItem = state.items.find((i) => i.id === productId);
+          if (existingItem && existingItem.quantity > step) {
+            return {
+              items: state.items.map((i) =>
+                i.id === productId ? { ...i, quantity: i.quantity - step } : i
+              ),
+            };
+          }
+          return { items: state.items.filter((i) => i.id !== productId) };
+        }),
+      updateItemColor: (productId, color) =>
+        set((state) => ({
+          items: state.items.map((i) =>
+            i.id === productId ? { ...i, selectedColor: color } : i
+          ),
+        })),
       clearCart: () => set({ items: [] }),
-      totalItems: () => get().items.reduce((sum, item) => sum + item.quantity, 0),
-      totalPrice: () => get().items.reduce((sum, item) => sum + item.price * item.quantity, 0),
     }),
-    {
-      name: 'cart-storage',
-      // Ensure we don't try to persist non-serializable data if any
-    }
+    { name: "cart-storage" }
   )
 );
