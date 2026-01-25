@@ -85,4 +85,4 @@ export function ProductCard({ product }: { product: Product }) {
       </CardFooter>
     </Card>
   );
-          
+}
