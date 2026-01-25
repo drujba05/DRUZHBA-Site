@@ -2,232 +2,342 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  FormDescription,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Product } from "@/lib/products";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, X, ImagePlus, Loader2, Search, Edit3, Package } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Pencil, Trash2, X, ShieldCheck, ImagePlus, Loader2, Search, Flame, Sparkles, Lock, Plus } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useState, useEffect, useRef } from "react";
 import { useUpload } from "@/hooks/use-upload";
 
-// Схема данных (соответствует твоим требованиям по полям)
+// Схема для товара
 const productSchema = z.object({
   name: z.string().min(2, "Минимум 2 символа"),
-  category: z.string().default("Обувь"),
-  price: z.coerce.number().min(1, "Укажите цену"),
+  sku: z.string().optional(),
+  category: z.string().min(2, "Обязательное поле"),
+  description: z.string().optional(),
+  price: z.coerce.number().min(1, "Цена должна быть больше 0"),
   sizes: z.string().min(1, "Укажите размеры"),
   colors: z.string().min(1, "Укажите цвета"),
-  status: z.string().default("В наличии"),
-  season: z.string().min(1, "Выберите сезон"),
-  pairs_per_box: z.coerce.number().min(1, "Минимум 1 пара"),
+  status: z.enum(["В наличии", "Нет в наличии", "Ожидается поступление"]),
+  season: z.enum(["Зима", "Лето", "Все сезоны"]),
+  gender: z.enum(["Универсальные", "Женские", "Мужские", "Детские"]),
+  min_order_quantity: z.coerce.number().min(6, "Минимум 6 пар"),
+  pairs_per_box: z.coerce.number().min(1, "Минимум 1 пара").optional(),
+  comment: z.string().optional(),
   is_bestseller: z.boolean().optional(),
   is_new: z.boolean().optional(),
 });
 
-export function AdminPanel({ products = [], onAddProduct, onUpdateProduct, onDeleteProduct }: any) {
+interface AdminPanelProps {
+  products: Product[];
+  onAddProduct: (product: Omit<Product, "id">) => Promise<Product>;
+  onUpdateProduct: (id: string, product: Partial<Product>) => Promise<Product>;
+  onDeleteProduct: (id: string) => Promise<void>;
+}
+
+export function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeleteProduct }: AdminPanelProps) {
   const { toast } = useToast();
+  
+  // --- ЛОГИКА АВТОРИЗАЦИИ ---
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState("");
+  const ADMIN_PASSWORD = "admin"; // ТУТ ВАШ ПАРОЛЬ
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password === ADMIN_PASSWORD) {
+      setIsAuthenticated(true);
+      toast({ title: "Доступ разрешен", description: "Добро пожаловать в панель управления" });
+    } else {
+      toast({ title: "Ошибка", description: "Неверный пароль", variant: "destructive" });
+    }
+  };
+
+  // --- ЛОГИКА ТОВАРОВ ---
   const [editingId, setEditingId] = useState<string | null>(null);
   const [previews, setPreviews] = useState<string[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { uploadFile } = useUpload();
-  
+
+  const [bulkAction, setBulkAction] = useState({
+    type: "percent" as "percent" | "fixed",
+    value: 0,
+    direction: "increase" as "increase" | "decrease"
+  });
+
+  const filteredProducts = products.filter(p => 
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (p.sku || "").toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
     defaultValues: {
-      name: "", category: "Обувь", price: 0, sizes: "36-41", colors: "",
-      status: "В наличии", season: "Демисезон", pairs_per_box: 6,
+      name: "", sku: "", category: "", description: "", price: 0,
+      sizes: "", colors: "", status: "В наличии", season: "Все сезоны",
+      gender: "Универсальные", min_order_quantity: 6, pairs_per_box: 12,
+      comment: "", is_bestseller: false, is_new: false,
     },
   });
 
-  // Фильтрация списка для быстрого поиска товаров
-  const filteredProducts = products.filter((p: any) => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  // Заполнение формы данными при нажатии на кнопку редактирования
   useEffect(() => {
     if (editingId) {
-      const p = products.find((item: any) => item.id === editingId);
-      if (p) {
-        form.reset({ ...p, price: Number(p.price) });
-        setPreviews([p.main_photo, ...(p.additional_photos || [])].filter(Boolean));
+      const product = products.find(p => p.id === editingId);
+      if (product) {
+        form.reset({
+          ...product,
+          season: (product.season as any) || "Все сезоны",
+          gender: (product.gender as any) || "Универсальные",
+        });
+        setPreviews([product.main_photo, ...(product.additional_photos || [])].filter(Boolean));
       }
     }
   }, [editingId, products, form]);
 
-  // Загрузка нескольких фотографий сразу
+  const handleBulkPriceUpdate = async () => {
+    if (bulkAction.value <= 0) return;
+    const confirmUpdate = confirm(`Применить изменения цен к ${filteredProducts.length} товарам?`);
+    if (!confirmUpdate) return;
+
+    try {
+      for (const product of filteredProducts) {
+        let newPrice = product.price;
+        const val = Number(bulkAction.value);
+        if (bulkAction.type === "percent") {
+          const diff = (product.price * val) / 100;
+          newPrice = bulkAction.direction === "increase" ? product.price + diff : product.price - diff;
+        } else {
+          newPrice = bulkAction.direction === "increase" ? product.price + val : product.price - val;
+        }
+        await onUpdateProduct(product.id, { price: Math.round(newPrice) });
+      }
+      toast({ title: "Цены обновлены!" });
+      setBulkAction({ ...bulkAction, value: 0 });
+    } catch (e) {
+      toast({ title: "Ошибка обновления", variant: "destructive" });
+    }
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
-    setIsUploading(true);
+    setIsUploadingImages(true);
     try {
-      const paths = [];
-      for (const f of files) {
-        const res = await uploadFile(f);
-        if (res?.objectPath) paths.push(res.objectPath);
+      for (const file of files) {
+        const result = await uploadFile(file);
+        if (result) setPreviews(prev => [...prev, result.objectPath]);
       }
-      setPreviews(prev => [...prev, ...paths]);
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
+    } finally { setIsUploadingImages(false); }
   };
 
-  const onSubmit = async (values: z.infer<typeof productSchema>) => {
-    if (previews.length === 0) return toast({ title: "Добавьте хотя бы одно фото", variant: "destructive" });
-    
-    // Первое фото — главное, остальные — дополнительные
-    const data = { ...values, main_photo: previews[0], additional_photos: previews.slice(1) };
-    
+  async function onSubmit(values: z.infer<typeof productSchema>) {
+    const main_photo = previews[0] || "";
+    const additional_photos = previews.slice(1);
     try {
-      if (editingId) await onUpdateProduct(editingId, data);
-      else await onAddProduct(data);
-      
+      if (editingId) {
+        await onUpdateProduct(editingId, { ...values, main_photo, additional_photos });
+        setEditingId(null);
+      } else {
+        await onAddProduct({ ...values, main_photo, additional_photos });
+      }
       form.reset();
       setPreviews([]);
-      setEditingId(null);
-      toast({ title: "Товар успешно сохранен!" });
-    } catch (e) {
-      toast({ title: "Ошибка при сохранении", variant: "destructive" });
-    }
-  };
+      toast({ title: "Успешно сохранено" });
+    } catch (e) { toast({ title: "Ошибка сохранения", variant: "destructive" }); }
+  }
 
-  return (
-    <div className="max-w-4xl mx-auto p-4 space-y-8 pb-20">
-      
-      {/* ФОРМА ДОБАВЛЕНИЯ/РЕДАКТИРОВАНИЯ */}
-      <Card className="rounded-[2rem] border shadow-sm bg-white overflow-hidden">
-        <CardHeader className="bg-slate-50/50 border-b">
-          <CardTitle className="text-xl font-black uppercase flex items-center gap-2">
-            <Package className="text-blue-600" /> 
-            {editingId ? "Редактирование товара" : "Добавить новый товар"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-6">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              
-              {/* ФОТОГРАФИИ */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-bold uppercase text-slate-400 ml-1">Фотографии товара (первое - главное)</label>
-                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                  {previews.map((src, i) => (
-                    <div key={i} className="relative aspect-square rounded-xl overflow-hidden border-2 border-slate-100 group">
-                      <img src={src} className="w-full h-full object-cover" />
-                      <button 
-                        type="button" 
-                        onClick={() => setPreviews(p => p.filter((_, idx) => idx !== i))} 
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X size={10}/>
-                      </button>
-                      {i === 0 && <div className="absolute bottom-0 w-full bg-blue-600/90 text-[7px] text-white text-center py-0.5 font-black uppercase">Главное</div>}
-                    </div>
-                  ))}
-                  <button 
-                    type="button" 
-                    onClick={() => fileInputRef.current?.click()} 
-                    className="aspect-square border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center bg-slate-50 hover:bg-slate-100 hover:border-blue-300 transition-all"
-                  >
-                    {isUploading ? <Loader2 className="animate-spin text-blue-500" /> : <ImagePlus className="text-slate-400" />}
-                  </button>
-                </div>
-                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" multiple accept="image/*" />
-              </div>
-
-              {/* ПОЛЯ ВВОДА */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="name" render={({ field }) => <FormItem><FormLabel className="text-[10px] font-bold uppercase">Название модели</FormLabel><Input {...field} className="h-12 rounded-xl bg-slate-50 border-none focus:bg-white transition-colors" /></FormItem>} />
-                <FormField control={form.control} name="colors" render={({ field }) => <FormItem><FormLabel className="text-[10px] font-bold uppercase">Цвета</FormLabel><Input {...field} className="h-12 rounded-xl bg-slate-50 border-none focus:bg-white transition-colors" /></FormItem>} />
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <FormField control={form.control} name="price" render={({ field }) => <FormItem><FormLabel className="text-[10px] font-bold uppercase">Цена (сом)</FormLabel><Input type="number" {...field} className="h-12 rounded-xl bg-slate-50 border-none focus:bg-white transition-colors" /></FormItem>} />
-                <FormField control={form.control} name="season" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-[10px] font-bold uppercase">Сезон</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-none"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Лето">Лето</SelectItem>
-                        <SelectItem value="Зима">Зима</SelectItem>
-                        <SelectItem value="Демисезон">Демисезон</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="sizes" render={({ field }) => <FormItem><FormLabel className="text-[10px] font-bold uppercase">Размеры</FormLabel><Input {...field} className="h-12 rounded-xl bg-slate-50 border-none focus:bg-white transition-colors" /></FormItem>} />
-                <FormField control={form.control} name="pairs_per_box" render={({ field }) => <FormItem><FormLabel className="text-[10px] font-bold uppercase">Пар в коробе</FormLabel><Input type="number" {...field} className="h-12 rounded-xl bg-slate-50 border-none focus:bg-white transition-colors" /></FormItem>} />
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <Button type="submit" disabled={isUploading} className="flex-1 h-14 bg-slate-900 hover:bg-black text-white font-black uppercase rounded-2xl shadow-xl active:scale-[0.98] transition-all">
-                  {isUploading ? "ЗАГРУЗКА..." : editingId ? "ОБНОВИТЬ ДАННЫЕ" : "СОХРАНИТЬ В КАТАЛОГ"}
-                </Button>
-                {editingId && (
-                  <Button type="button" variant="outline" onClick={() => {setEditingId(null); form.reset(); setPreviews([]);}} className="h-14 px-8 rounded-2xl font-bold uppercase border-slate-200">Отмена</Button>
-                )}
-              </div>
+  // --- ЭКРАН ВХОДА ---
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center p-4">
+        <Card className="w-full max-w-md rounded-[2.5rem] shadow-2xl border-none">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+              <Lock className="text-blue-600 h-8 w-8" />
+            </div>
+            <CardTitle className="text-2xl font-black uppercase tracking-tighter">Вход для админа</CardTitle>
+            <CardDescription>Введите пароль для управления магазином</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <Input 
+                type="password" 
+                placeholder="Ваш пароль" 
+                className="h-12 rounded-2xl bg-slate-50 border-none text-center text-xl"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoFocus
+              />
+              <Button type="submit" className="w-full h-12 rounded-2xl bg-blue-600 hover:bg-blue-700 font-bold text-lg">
+                ВОЙТИ
+              </Button>
             </form>
-          </Form>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
-      {/* ПОИСК ПО ТОВАРАМ */}
-      <div className="space-y-4">
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-          <Input 
-            placeholder="Найти товар по названию..." 
-            className="h-14 pl-12 rounded-2xl bg-white border-none shadow-sm focus:ring-2 focus:ring-blue-100"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
+  // --- ОСНОВНОЙ ЭКРАН АДМИНКИ ---
+  return (
+    <div className="space-y-6 p-4">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-black uppercase tracking-tighter">Панель управления</h1>
+        <Button variant="ghost" size="sm" onClick={() => setIsAuthenticated(false)} className="rounded-xl">Выйти</Button>
+      </div>
 
-        {/* СПИСОК ТОВАРОВ */}
-        <div className="grid gap-2">
-          {filteredProducts.map((p: any) => (
-            <div key={p.id} className="flex items-center justify-between p-3 bg-white rounded-[1.5rem] shadow-sm border border-slate-50 hover:border-blue-100 transition-all">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl overflow-hidden bg-slate-100">
-                  <img src={p.main_photo} className="w-full h-full object-cover" />
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="h-fit rounded-[2rem] border-none shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              {editingId ? <Pencil className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+              {editingId ? "Редактировать товар" : "Новый товар"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField control={form.control} name="name" render={({ field }) => (
+                  <FormItem><FormLabel>Название</FormLabel><FormControl><Input {...field} className="rounded-xl bg-slate-50 border-none" /></FormControl></FormItem>
+                )} />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField control={form.control} name="price" render={({ field }) => (
+                    <FormItem><FormLabel>Цена (пара)</FormLabel><FormControl><Input type="number" {...field} className="rounded-xl bg-slate-50 border-none" /></FormControl></FormItem>
+                  )} />
+                  <FormField control={form.control} name="min_order_quantity" render={({ field }) => (
+                    <FormItem><FormLabel>Мин. заказ</FormLabel><FormControl><Input type="number" step={6} {...field} className="rounded-xl bg-slate-50 border-none" /></FormControl></FormItem>
+                  )} />
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-[12px] font-black uppercase text-slate-800 leading-tight">{p.name}</span>
-                  <span className="text-[10px] font-bold text-blue-600">{p.price} сом — {p.season}</span>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button 
-                  size="icon" 
-                  variant="ghost" 
-                  className="h-10 w-10 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100" 
-                  onClick={() => {setEditingId(p.id); window.scrollTo({top: 0, behavior: 'smooth'});}}
-                >
-                  <Edit3 size={16}/>
-                </Button>
-                <Button 
-                  size="icon" 
-                  variant="ghost" 
-                  className="h-10 w-10 bg-red-50 text-red-400 rounded-xl hover:bg-red-100" 
-                  onClick={() => {if(confirm(`Удалить ${p.name}?`)) onDeleteProduct(p.id)}}
-                >
-                  <Trash2 size={16}/>
-                </Button>
-              </div>
-            </div>
-          ))}
 
-          {filteredProducts.length === 0 && (
-            <div className="text-center py-20 bg-slate-50/50 rounded-[2rem] border-2 border-dashed">
-              <Package size={48} className="mx-auto mb-2 text-slate-200" />
-              <p className="text-slate-400 font-bold uppercase text-[10px]">Ничего не найдено</p>
-            </div>
-          )}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField control={form.control} name="sizes" render={({ field }) => (
+                    <FormItem><FormLabel>Размеры</FormLabel><FormControl><Input placeholder="36-41" {...field} className="rounded-xl bg-slate-50 border-none" /></FormControl></FormItem>
+                  )} />
+                  <FormField control={form.control} name="colors" render={({ field }) => (
+                    <FormItem><FormLabel>Цвета</FormLabel><FormControl><Input placeholder="Черный, Белый" {...field} className="rounded-xl bg-slate-50 border-none" /></FormControl></FormItem>
+                  )} />
+                </div>
+
+                <div className="flex gap-4 p-4 bg-slate-50 rounded-2xl">
+                  <FormField control={form.control} name="is_bestseller" render={({ field }) => (
+                    <FormItem className="flex items-center space-x-2 space-y-0">
+                      <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                      <FormLabel className="text-xs cursor-pointer">🔥 Хит</FormLabel>
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="is_new" render={({ field }) => (
+                    <FormItem className="flex items-center space-x-2 space-y-0">
+                      <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                      <FormLabel className="text-xs cursor-pointer">✨ New</FormLabel>
+                    </FormItem>
+                  )} />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Фотографии ({previews.length})</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {previews.map((src, i) => (
+                      <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border">
+                        <img src={src} className="w-full h-full object-cover" />
+                        <button type="button" onClick={() => setPreviews(p => p.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5"><X size={12} /></button>
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => fileInputRef.current?.click()} className="w-20 h-20 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center hover:bg-slate-50 transition-colors">
+                      {isUploadingImages ? <Loader2 className="animate-spin text-slate-400" /> : <ImagePlus className="text-slate-400" />}
+                    </button>
+                  </div>
+                  <input type="file" ref={fileInputRef} className="hidden" multiple accept="image/*" onChange={handleFileChange} />
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700 h-12 rounded-2xl font-bold">
+                    {editingId ? "ОБНОВИТЬ" : "СОЗДАТЬ ТОВАР"}
+                  </Button>
+                  {editingId && <Button type="button" variant="outline" onClick={() => setEditingId(null)} className="h-12 rounded-2xl">Отмена</Button>}
+                </div>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+
+        <div className="space-y-6">
+          {/* ГРУППОВЫЕ ЦЕНЫ */}
+          <Card className="border-blue-100 bg-blue-50/40 rounded-[2rem] shadow-none">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-bold flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-blue-600" /> Групповое изменение цен
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-wrap items-end gap-3">
+              <div className="space-y-1">
+                <Select value={bulkAction.direction} onValueChange={(v: any) => setBulkAction({...bulkAction, direction: v})}>
+                  <SelectTrigger className="w-[130px] h-10 bg-white rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="increase">Увеличить на</SelectItem>
+                    <SelectItem value="decrease">Уменьшить на</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex h-10">
+                <Input type="number" className="w-20 rounded-l-xl rounded-r-none border-r-0 h-full bg-white" value={bulkAction.value} onChange={e => setBulkAction({...bulkAction, value: Number(e.target.value)})} />
+                <Select value={bulkAction.type} onValueChange={(v: any) => setBulkAction({...bulkAction, type: v})}>
+                  <SelectTrigger className="w-16 rounded-r-xl rounded-l-none h-full bg-white border-l-0"><SelectValue /></SelectTrigger>
+                  <SelectContent className="rounded-xl"><SelectItem value="percent">%</SelectItem><SelectItem value="fixed">сом</SelectItem></SelectContent>
+                </Select>
+              </div>
+              <Button onClick={handleBulkPriceUpdate} className="bg-blue-600 h-10 rounded-xl font-bold px-4">ОК</Button>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-[2rem] border-none shadow-lg">
+            <CardHeader className="pb-0 pt-6 px-6">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input placeholder="Поиск товара..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-11 h-12 rounded-2xl bg-slate-50 border-none" />
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 overflow-auto max-h-[600px]">
+              <div className="space-y-2">
+                {filteredProducts.map(p => (
+                  <div key={p.id} className="flex items-center justify-between p-3 rounded-2xl border border-slate-50 bg-white hover:border-blue-100 transition-all">
+                    <div className="flex items-center gap-3">
+                      <img src={p.main_photo} className="w-12 h-12 rounded-xl object-cover" />
+                      <div>
+                        <p className="text-sm font-black leading-none uppercase tracking-tight">{p.name}</p>
+                        <p className="text-[11px] font-bold text-blue-600 mt-1">{p.price} сом</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button size="icon" variant="ghost" className="h-10 w-10 text-slate-400 hover:text-blue-600" onClick={() => setEditingId(p.id)}><Pencil size={16} /></Button>
+                      <Button size="icon" variant="ghost" className="h-10 w-10 text-slate-400 hover:text-red-600" onClick={() => { if(confirm('Удалить товар?')) onDeleteProduct(p.id) }}><Trash2 size={16} /></Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
