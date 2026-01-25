@@ -3,7 +3,7 @@ import { persist } from "zustand/middleware";
 import { Product } from "./products";
 
 export interface CartItem extends Product {
-  productId: string; // Используем productId для стабильности
+  productId: string;
   quantity: number;
   selectedColor?: string;
 }
