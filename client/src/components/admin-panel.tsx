@@ -1,22 +1,20 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Product } from "@/lib/products";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Pencil, Trash2, X, ImagePlus, Loader2, FileSpreadsheet, Flame, Sparkles } from "lucide-react";
+import { Pencil, Trash2, X, ImagePlus, Loader2, Sparkles, Package } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useState, useRef } from "react";
 import { useUpload } from "@/hooks/use-upload";
 
 const productSchema = z.object({
-  name: z.string().min(2),
-  sku: z.string().optional(),
+  name: z.string().min(2, "Введите название"),
   category: z.string().min(2),
   price: z.coerce.number().min(1),
   sizes: z.string().min(1),
@@ -30,7 +28,7 @@ const productSchema = z.object({
   is_new: z.boolean().optional(),
 });
 
-export function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeleteProduct }: any) {
+export function AdminPanel({ products = [], onAddProduct, onUpdateProduct, onDeleteProduct }: any) {
   const { toast } = useToast();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -41,7 +39,7 @@ export function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeletePr
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
     defaultValues: {
-      name: "", category: "Обувь", price: 0, sizes: "36-41", colors: "Черный",
+      name: "", category: "Обувь", price: 0, sizes: "36-41", colors: "",
       status: "В наличии", season: "Все сезоны", gender: "Универсальные",
       min_order_quantity: 6, pairs_per_box: 12, is_bestseller: false, is_new: false,
     },
@@ -61,40 +59,6 @@ export function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeletePr
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleExcelUpload = (e: any) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (evt: any) => {
-      const bstr = evt.target.result;
-      const wb = XLSX.read(bstr, { type: "binary" });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const data = XLSX.utils.sheet_to_json(ws);
-      
-      toast({ title: "Начинаю импорт...", description: `Загрузка ${data.length} товаров` });
-      
-      for (const row of data as any[]) {
-        await onAddProduct({
-          name: row.Название || "Без названия",
-          price: Number(row.Цена) || 0,
-          category: row.Категория || "Обувь",
-          sizes: String(row.Размеры || "36-41"),
-          colors: String(row.Цвета || "Черный"),
-          status: "В наличии",
-          season: row.Сезон || "Все сезоны",
-          gender: row.Пол || "Универсальные",
-          pairs_per_box: Number(row.Коробка) || 12,
-          min_order_quantity: Number(row.МинЗаказ) || 6,
-          main_photo: row.Фото || "",
-          additional_photos: [],
-          is_new: true
-        });
-      }
-      toast({ title: "Excel импортирован!" });
-    };
-    reader.readAsBinaryString(file);
-  };
-
   const handleFileChange = async (e: any) => {
     const files = Array.from(e.target.files || []);
     setIsUploading(true);
@@ -111,35 +75,35 @@ export function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeletePr
       if (editingId) {
         await onUpdateProduct(editingId, { ...values, ...photos });
         setEditingId(null);
-        toast({ title: "Обновлено успешно" });
+        toast({ title: "Обновлено!" });
       } else {
         await onAddProduct({ ...values, ...photos });
-        toast({ title: "Товар добавлен" });
+        toast({ title: "Добавлено в каталог!" });
       }
       form.reset();
       setPreviews([]);
     } catch (e) {
-      toast({ title: "Ошибка сохранения", variant: "destructive" });
+      toast({ title: "Ошибка", variant: "destructive" });
     }
   }
 
   return (
     <div className="grid lg:grid-cols-3 gap-8 pb-20">
       <div className="lg:col-span-2 space-y-8">
-        {/* ФОРМА */}
-        <Card className="border-none shadow-xl">
-          <CardHeader className="bg-slate-900 text-white rounded-t-xl">
-            <CardTitle>{editingId ? "✏️ Редактирование" : "➕ Новый товар"}</CardTitle>
+        <Card className="border-none shadow-lg">
+          <CardHeader className="bg-blue-600 text-white rounded-t-xl">
+            <CardTitle>{editingId ? "📝 Редактировать товар" : "📦 Добавить товар"}</CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField control={form.control} name="name" render={({ field }) => (
-                  <FormItem><FormLabel>Название</FormLabel><Input {...field} /></FormItem>
+                  <FormItem><FormLabel>Название модели</FormLabel><Input placeholder="Напр: Кроссовки Bona" {...field} /></FormItem>
                 )} />
+                
                 <div className="grid grid-cols-2 gap-4">
                   <FormField control={form.control} name="price" render={({ field }) => (
-                    <FormItem><FormLabel>Цена</FormLabel><Input type="number" {...field} /></FormItem>
+                    <FormItem><FormLabel>Цена (сом)</FormLabel><Input type="number" {...field} /></FormItem>
                   )} />
                   <FormField control={form.control} name="season" render={({ field }) => (
                     <FormItem><FormLabel>Сезон</FormLabel>
@@ -155,73 +119,87 @@ export function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeletePr
                     </FormItem>
                   )} />
                 </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField control={form.control} name="colors" render={({ field }) => (
+                    <FormItem><FormLabel>Цвета (через запятую)</FormLabel><Input placeholder="Черный, Белый" {...field} /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="pairs_per_box" render={({ field }) => (
+                    <FormItem><FormLabel>Пар в коробке</FormLabel><Input type="number" {...field} /></FormItem>
+                  )} />
+                </div>
+
                 <div className="flex gap-4 p-4 bg-slate-50 rounded-lg">
                    <FormField control={form.control} name="is_new" render={({ field }) => (
                     <FormItem className="flex items-center gap-2 space-y-0">
                       <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                      <FormLabel className="flex items-center gap-1"><Sparkles className="w-4 h-4 text-green-500"/> Новинка</FormLabel>
+                      <FormLabel className="flex items-center gap-1 font-bold"><Sparkles className="w-4 h-4 text-orange-500"/> Новинка</FormLabel>
                     </FormItem>
                   )} />
                 </div>
+
                 <div className="space-y-2">
-                  <FormLabel>Фотографии (Первое — главное)</FormLabel>
+                  <FormLabel>Фотографии</FormLabel>
                   <div className="grid grid-cols-4 gap-2">
                     {previews.map((url, i) => (
-                      <div key={i} className="relative aspect-square border rounded-lg overflow-hidden group">
+                      <div key={url} className="relative aspect-square border rounded-lg overflow-hidden group">
                         <img src={url} className="object-cover w-full h-full" />
                         <button type="button" onClick={() => setPreviews(prev => prev.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100"><X size={12}/></button>
                       </div>
                     ))}
-                    <button type="button" onClick={() => fileInputRef.current?.click()} className="aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-slate-400 hover:text-blue-500">
+                    <button type="button" onClick={() => fileInputRef.current?.click()} className="aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-600 transition-colors">
                       {isUploading ? <Loader2 className="animate-spin" /> : <ImagePlus />}
                     </button>
                   </div>
                   <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" multiple accept="image/*" />
                 </div>
-                <Button type="submit" className="w-full bg-blue-600 h-12 font-bold uppercase">{editingId ? "Сохранить изменения" : "Добавить в каталог"}</Button>
-                {editingId && <Button type="button" variant="ghost" onClick={() => {setEditingId(null); form.reset(); setPreviews([]);}} className="w-full">Отмена</Button>}
+
+                <Button type="submit" className="w-full bg-blue-600 h-12 font-bold uppercase shadow-md active:scale-95 transition-transform">
+                  {editingId ? "Сохранить изменения" : "Опубликовать на сайт"}
+                </Button>
+                {editingId && (
+                  <Button type="button" variant="ghost" onClick={() => {setEditingId(null); form.reset(); setPreviews([]);}} className="w-full text-slate-500">
+                    Отменить редактирование
+                  </Button>
+                )}
               </form>
             </Form>
           </CardContent>
         </Card>
-
-        {/* СПИСОК ТОВАРОВ */}
-        <Card className="border-none shadow-xl">
-          <CardHeader className="border-b"><CardTitle>Управление товарами ({products?.length || 0})</CardTitle></CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y">
-              {products?.map((p: any) => (
-                <div key={p.id} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
-                  <div className="flex items-center gap-4">
-                    <img src={p.main_photo} className="w-12 h-12 object-cover rounded-lg border" />
-                    <div>
-                      <p className="font-bold text-slate-900 leading-none mb-1">{p.name}</p>
-                      <p className="text-xs text-slate-500 font-bold uppercase">{p.price} сом • {p.season}</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button size="icon" variant="outline" onClick={() => startEdit(p)} className="text-blue-600 border-blue-100 hover:bg-blue-50"><Pencil size={16} /></Button>
-                    <Button size="icon" variant="outline" onClick={() => {if(confirm("Удалить?")) onDeleteProduct(p.id)}} className="text-rose-500 border-rose-100 hover:bg-rose-50"><Trash2 size={16} /></Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
-      <div className="space-y-6">
-        <Card className="bg-green-600 text-white border-none shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><FileSpreadsheet /> EXCEL ИМПОРТ</CardTitle>
-            <CardDescription className="text-green-100">Массовая загрузка товаров</CardDescription>
+      <div className="lg:col-span-1">
+        <Card className="border-none shadow-lg sticky top-24">
+          <CardHeader className="border-b bg-slate-50">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Package className="w-5 h-5 text-blue-600" />
+              Список товаров ({products?.length || 0})
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="bg-white/10 p-4 rounded-lg border border-white/20 mb-4">
-              <p className="text-[10px] uppercase font-bold mb-2">Названия колонок:</p>
-              <p className="text-[10px]">Название, Цена, Категория, Размеры, Цвета, Сезон, Пол, Коробка, МинЗаказ, Фото</p>
-            </div>
-            <input type="file" accept=".xlsx, .xls" onChange={handleExcelUpload} className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-white file:text-green-700 hover:file:bg-green-50" />
+          <CardContent className="p-0 max-h-[70vh] overflow-y-auto">
+            {products && products.length > 0 ? (
+              <div className="divide-y">
+                {products.map((p: any) => (
+                  <div key={p.id} className="flex items-center justify-between p-3 hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <img src={p.main_photo} className="w-10 h-10 object-cover rounded border" />
+                      <div className="overflow-hidden">
+                        <p className="font-bold text-sm truncate w-32">{p.name}</p>
+                        <p className="text-[10px] text-blue-600 font-bold uppercase">{p.price} сом</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button size="icon" variant="ghost" onClick={() => startEdit(p)} className="h-8 w-8 text-blue-600 hover:bg-blue-50"><Pencil size={14} /></Button>
+                      <Button size="icon" variant="ghost" onClick={() => {if(confirm("Удалить этот товар?")) onDeleteProduct(p.id)}} className="h-8 w-8 text-rose-500 hover:bg-rose-50"><Trash2 size={14} /></Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-10 text-center text-slate-400 text-sm">
+                Товаров пока нет
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
