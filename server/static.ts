@@ -7,21 +7,33 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 export function serveStatic(app: Express) {
-  // Пытаемся найти папку 'dist' в корне или 'public' в server
+  // 1. Определяем путь к папке dist (она на уровень выше папки server)
   const distPath = path.resolve(__dirname, "..", "dist");
-  const publicPath = path.resolve(__dirname, "public");
   
-  const finalPath = fs.existsSync(distPath) ? distPath : publicPath;
+  // 2. Логируем для проверки в консоли Railway
+  console.log(`Checking for build directory at: ${distPath}`);
 
-  if (!fs.existsSync(finalPath)) {
-    // Если папки нет, сервер не упадет сразу, а выведет инфо в консоль
-    console.log(`Warning: Build directory not found at ${finalPath}`);
+  if (!fs.existsSync(distPath)) {
+    console.error(`❌ ERROR: Build directory NOT FOUND at ${distPath}`);
+    console.log("Current directory files:", fs.readdirSync(path.resolve(__dirname, "..")));
     return;
   }
 
-  app.use(express.static(finalPath));
+  // 3. Раздаем статические файлы из папки dist
+  app.use(express.static(distPath));
 
-  app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(finalPath, "index.html"));
+  // 4. Важно: для всех остальных запросов отдаем index.html (для SPA)
+  app.use("*", (req, res) => {
+    // Если запрос идет к API, не отдаем index.html
+    if (req.originalUrl.startsWith("/api")) {
+      return res.status(404).json({ message: "API route not found" });
+    }
+    
+    const indexPath = path.resolve(distPath, "index.html");
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      res.status(404).send("Front-end build (index.html) missing");
+    }
   });
 }
