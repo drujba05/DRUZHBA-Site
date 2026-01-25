@@ -1,7 +1,8 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import * as XLSX from "xlsx"; // Добавь этот импорт, если установил библиотеку, если нет - закомментируй
+// Импорт xlsx временно убран для успешного деплоя
+// import * as XLSX from "xlsx"; 
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -96,44 +97,12 @@ export function AdminPanel({ products = [], onAddProduct, onUpdateProduct, onDel
     }
   }, [editingId, products]);
 
-  // Функция для Excel импорта
   const handleExcelImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      try {
-        const bstr = evt.target?.result;
-        const wb = XLSX.read(bstr, { type: "binary" });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const data = XLSX.utils.sheet_to_json(ws);
-
-        toast({ title: "Импорт начат", description: `Загружаем ${data.length} позиций` });
-
-        for (const row of data as any[]) {
-          await onAddProduct({
-            name: row.Название || "Новый товар",
-            category: row.Категория || "Обувь",
-            price: Number(row.Цена) || 0,
-            sizes: String(row.Размеры || "36-41"),
-            colors: String(row.Цвета || "Черный"),
-            status: "В наличии",
-            season: row.Сезон || "Все сезоны",
-            gender: row.Пол || "Универсальные",
-            min_order_quantity: Number(row.МинЗаказ) || 6,
-            pairs_per_box: Number(row.Коробка) || 12,
-            main_photo: row.Фото || "",
-            additional_photos: [],
-            sku: `EXCEL-${Math.floor(Math.random() * 1000)}`
-          });
-        }
-        toast({ title: "Импорт завершен успешно" });
-      } catch (err) {
-        toast({ title: "Ошибка Excel", description: "Проверьте формат файла", variant: "destructive" });
-      }
-    };
-    reader.readAsBinaryString(file);
+    toast({ 
+      title: "Функция временно отключена", 
+      description: "Нужно установить библиотеку xlsx через терминал.",
+      variant: "destructive"
+    });
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -158,9 +127,11 @@ export function AdminPanel({ products = [], onAddProduct, onUpdateProduct, onDel
     try {
       if (editingId) {
         await onUpdateProduct(editingId, { ...values, main_photo, additional_photos });
+        toast({ title: "Обновлено" });
         setEditingId(null);
       } else {
         await onAddProduct({ ...values, main_photo, additional_photos });
+        toast({ title: "Добавлено" });
       }
       form.reset();
       setPreviews([]);
@@ -172,19 +143,23 @@ export function AdminPanel({ products = [], onAddProduct, onUpdateProduct, onDel
   return (
     <div className="space-y-8 pb-20">
       <div className="grid gap-6 md:grid-cols-2">
-        <Card className="h-full border-t-4 border-t-blue-600">
-          <CardHeader className="flex flex-row items-center justify-between">
+        <Card className="h-full border-t-4 border-t-blue-600 shadow-lg">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div>
-              <CardTitle>{editingId ? "✏️ Редактирование" : "➕ Новый товар"}</CardTitle>
+              <CardTitle className="text-xl font-bold">{editingId ? "✏️ Редактирование" : "➕ Новый товар"}</CardTitle>
               <CardDescription>Заполните параметры модели</CardDescription>
             </div>
-            {editingId && <Button variant="ghost" size="icon" onClick={() => setEditingId(null)}><X className="h-4 w-4" /></Button>}
+            {editingId && (
+              <Button variant="ghost" size="icon" onClick={() => setEditingId(null)}>
+                <X className="h-4 w-4" />
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField control={form.control} name="name" render={({ field }) => (
-                  <FormItem><FormLabel>Название</FormLabel><Input {...field} /></FormItem>
+                  <FormItem><FormLabel>Название</FormLabel><Input {...field} placeholder="Напр: Сапоги EVA" /></FormItem>
                 )} />
                 <div className="grid grid-cols-2 gap-4">
                   <FormField control={form.control} name="category" render={({ field }) => (
@@ -215,10 +190,20 @@ export function AdminPanel({ products = [], onAddProduct, onUpdateProduct, onDel
 
                 <div className="flex gap-6 p-4 bg-slate-50 rounded-lg border">
                   <FormField control={form.control} name="is_bestseller" render={({ field }) => (
-                    <FormItem className="flex items-center gap-2"><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="flex items-center gap-1 cursor-pointer"><Flame className="h-4 w-4 text-orange-500" /> Хит</FormLabel></FormItem>
+                    <FormItem className="flex items-center gap-2">
+                      <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                      <FormLabel className="flex items-center gap-1 cursor-pointer font-medium text-sm">
+                        <Flame className="h-4 w-4 text-orange-500" /> Хит
+                      </FormLabel>
+                    </FormItem>
                   )} />
                   <FormField control={form.control} name="is_new" render={({ field }) => (
-                    <FormItem className="flex items-center gap-2"><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="flex items-center gap-1 cursor-pointer"><Sparkles className="h-4 w-4 text-green-500" /> New</FormLabel></FormItem>
+                    <FormItem className="flex items-center gap-2">
+                      <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                      <FormLabel className="flex items-center gap-1 cursor-pointer font-medium text-sm">
+                        <Sparkles className="h-4 w-4 text-green-500" /> New
+                      </FormLabel>
+                    </FormItem>
                   )} />
                 </div>
 
@@ -228,40 +213,47 @@ export function AdminPanel({ products = [], onAddProduct, onUpdateProduct, onDel
                     {previews.map((src, i) => (
                       <div key={i} className="relative aspect-square rounded-md overflow-hidden border group">
                         <img src={src} className="w-full h-full object-cover" />
-                        <button type="button" onClick={() => setPreviews(p => p.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100"><X size={10} /></button>
+                        <button type="button" onClick={() => setPreviews(p => p.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <X size={10} />
+                        </button>
+                        {i === 0 && <div className="absolute bottom-0 inset-x-0 bg-blue-600/80 text-[8px] text-white text-center py-0.5 font-bold uppercase">Главное</div>}
                       </div>
                     ))}
                     <button type="button" onClick={() => fileInputRef.current?.click()} className="aspect-square rounded-md border-2 border-dashed flex flex-col items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-600 transition-all">
-                      {isUploadingImages ? <Loader2 className="animate-spin" /> : <ImagePlus />}
+                      {isUploadingImages ? <Loader2 className="animate-spin" /> : <ImagePlus className="h-6 w-6" />}
+                      <span className="text-[10px] mt-1 font-medium">{isUploadingImages ? 'Загрузка' : 'Добавить'}</span>
                     </button>
                   </div>
                   <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" multiple accept="image/*" />
                 </div>
 
-                <Button type="submit" className="w-full h-12 text-lg font-bold uppercase">{editingId ? "Сохранить правки" : "Добавить в базу"}</Button>
+                <Button type="submit" className="w-full h-12 text-lg font-bold uppercase shadow-md active:scale-[0.98] transition-transform">
+                  {editingId ? "Сохранить правки" : "Добавить в базу"}
+                </Button>
               </form>
             </Form>
           </CardContent>
         </Card>
 
-        <Card className="h-full bg-slate-900 text-white border-none shadow-2xl">
-          <CardHeader>
-            <CardTitle className="text-blue-400">Excel Импорт</CardTitle>
+        <Card className="h-full bg-slate-900 text-white border-none shadow-2xl overflow-hidden relative">
+          <div className="absolute top-0 right-0 p-4 opacity-10"><FileSpreadsheet size={120} /></div>
+          <CardHeader className="relative z-10">
+            <CardTitle className="text-blue-400 flex items-center gap-2"><FileSpreadsheet className="w-5 h-5" /> Excel Импорт</CardTitle>
             <CardDescription className="text-slate-400 font-medium">Массовая загрузка каталога</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="border-2 border-dashed border-slate-700 rounded-xl p-8 text-center hover:border-blue-500 hover:bg-slate-800 transition-all cursor-pointer relative group">
+          <CardContent className="space-y-6 relative z-10">
+            <div className="border-2 border-dashed border-slate-700 rounded-xl p-8 text-center hover:border-blue-500 hover:bg-slate-800 transition-all cursor-pointer group">
               <FileSpreadsheet className="mx-auto h-12 w-12 text-slate-500 mb-3 group-hover:text-blue-400 transition-colors" />
-              <p className="text-sm font-bold uppercase tracking-wider">Выбрать файл Excel</p>
+              <p className="text-sm font-bold uppercase tracking-wider text-slate-300">Выбрать файл Excel</p>
               <Input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept=".xlsx,.xls" onChange={handleExcelImport} />
             </div>
             
-            <div className="bg-slate-800 p-4 rounded-lg border border-slate-700">
+            <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
               <h4 className="font-bold text-blue-400 text-xs mb-3 flex items-center uppercase tracking-widest">
-                <ShieldCheck className="w-4 h-4 mr-2" /> Формат колонок
+                <ShieldCheck className="w-4 h-4 mr-2" /> Памятка по формату
               </h4>
-              <p className="text-[10px] text-slate-300 leading-relaxed font-mono">
-                Название, Цена, Категория, Размеры, Цвета, Сезон, Коробка, Фото
+              <p className="text-[10px] text-slate-400 leading-relaxed font-mono">
+                Колонки в файле: Название, Цена, Категория, Размеры, Цвета, Сезон, Коробка, Фото (ссылка)
               </p>
             </div>
           </CardContent>
@@ -271,7 +263,10 @@ export function AdminPanel({ products = [], onAddProduct, onUpdateProduct, onDel
       <Card className="border-none shadow-xl overflow-hidden">
         <CardHeader className="bg-slate-50 border-b">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <CardTitle>Список товаров ({filteredProducts.length})</CardTitle>
+            <div>
+              <CardTitle className="text-lg">Управление товарами</CardTitle>
+              <CardDescription>Всего позиций в базе: {filteredProducts.length}</CardDescription>
+            </div>
             <div className="relative w-full md:w-80">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input placeholder="Поиск модели..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10 h-10 border-slate-200 focus:ring-blue-500" />
@@ -290,15 +285,15 @@ export function AdminPanel({ products = [], onAddProduct, onUpdateProduct, onDel
                   <th className="p-4 text-right">Управление</th>
                 </tr>
               </thead>
-              <tbody className="divide-y">
+              <tbody className="divide-y divide-slate-100">
                 {filteredProducts.map((p) => (
                   <tr key={p.id} className="hover:bg-blue-50/50 transition-colors group">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <img src={p.main_photo} className="w-10 h-10 object-cover rounded border" />
+                        <img src={p.main_photo} className="w-10 h-10 object-cover rounded border bg-white shadow-sm" />
                         <div>
-                          <div className="font-bold text-slate-900">{p.name}</div>
-                          <div className="text-[10px] text-slate-400 tracking-wider uppercase">{p.sku}</div>
+                          <div className="font-bold text-slate-900 leading-tight">{p.name}</div>
+                          <div className="text-[10px] text-slate-400 tracking-wider uppercase">{p.sku || 'Без артикула'}</div>
                         </div>
                       </div>
                     </td>
@@ -307,7 +302,7 @@ export function AdminPanel({ products = [], onAddProduct, onUpdateProduct, onDel
                     <td className="p-4 italic text-slate-500 text-xs">{p.season || "Все сезоны"}</td>
                     <td className="p-4 text-right">
                       <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="outline" size="sm" onClick={() => { setEditingId(p.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="h-8 w-8 p-0 text-blue-600"><Pencil className="h-3.5 w-3.5" /></Button>
+                        <Button variant="outline" size="sm" onClick={() => { setEditingId(p.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="h-8 w-8 p-0 text-blue-600 border-blue-100 hover:bg-blue-50"><Pencil className="h-3.5 w-3.5" /></Button>
                         <Button variant="outline" size="sm" onClick={() => { if(confirm(`Удалить ${p.name}?`)) onDeleteProduct(p.id) }} className="h-8 w-8 p-0 text-rose-500 hover:bg-rose-50 border-rose-100"><Trash2 className="h-3.5 w-3.5" /></Button>
                       </div>
                     </td>
@@ -316,8 +311,11 @@ export function AdminPanel({ products = [], onAddProduct, onUpdateProduct, onDel
               </tbody>
             </table>
           </div>
+          {filteredProducts.length === 0 && (
+            <div className="p-20 text-center text-slate-400 text-sm italic">Товары не найдены</div>
+          )}
         </CardContent>
       </Card>
     </div>
   );
-}
+      }
