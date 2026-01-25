@@ -1,26 +1,33 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useCart } from "@/lib/cart";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from "@/components/ui/sheet";
-import { ShoppingCart, Trash2, Plus, Minus, Send, User, Phone } from "lucide-react";
+import { ShoppingCart, Trash2, Plus, Minus, Send, User, Phone, Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 
 export function CartDrawer() {
-  const { items, removeItem, updateQuantity, totalPrice, totalItems, clearCart } = useCart();
+  const { items, removeItem, addItem, clearCart } = useCart();
   const { toast } = useToast();
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Считаем итоги прямо здесь, чтобы не зависеть от функций в cart.ts
+  const totals = useMemo(() => {
+    const totalQty = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+    const totalPrice = items.reduce((sum, item) => sum + (item.price * (item.quantity || 0)), 0);
+    return { totalQty, totalPrice };
+  }, [items]);
+
   const handleCheckout = async () => {
+    if (items.length === 0) return;
     if (!customerName.trim() || !customerPhone.trim()) {
       toast({
         title: "Заполните данные",
-        description: "Укажите ваше имя и номер телефона для связи.",
+        description: "Укажите ваше имя и номер телефона.",
         variant: "destructive",
       });
       return;
@@ -37,35 +44,23 @@ export function CartDrawer() {
             quantity: item.quantity,
             price: item.price,
             selectedColor: item.selectedColor,
-            main_photo: item.main_photo,
           })),
           customerName: customerName.trim(),
           customerPhone: customerPhone.trim(),
-          totalPrice: totalPrice(),
+          totalPrice: totals.totalPrice,
         }),
       });
 
       if (response.ok) {
-        toast({
-          title: "Заказ отправлен!",
-          description: "Менеджер свяжется с вами в ближайшее время.",
-        });
+        toast({ title: "Заказ отправлен!", description: "Менеджер скоро свяжется с вами." });
         clearCart();
         setCustomerName("");
         setCustomerPhone("");
       } else {
-        toast({
-          title: "Ошибка",
-          description: "Не удалось отправить заказ. Попробуйте позже.",
-          variant: "destructive",
-        });
+        throw new Error();
       }
     } catch (error) {
-      toast({
-        title: "Ошибка",
-        description: "Не удалось отправить заказ. Попробуйте позже.",
-        variant: "destructive",
-      });
+      toast({ title: "Ошибка", description: "Не удалось отправить заказ.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -77,60 +72,61 @@ export function CartDrawer() {
         <Button variant="outline" size="icon" className="relative bg-white/10 border-white/20 text-white hover:bg-white/20">
           <ShoppingCart className="h-5 w-5" />
           {items.length > 0 && (
-            <span className="absolute -top-2 -right-2 bg-primary text-white text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center border-2 border-black">
+            <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center border-2 border-purple-900">
               {items.length}
             </span>
           )}
         </Button>
       </SheetTrigger>
       
-      {/* МЫ ИЗМЕНИЛИ ЭТУ СТРОКУ НИЖЕ, ДОБАВИВ bg-white и text-black */}
-      <SheetContent className="w-full sm:max-w-md flex flex-col bg-white text-black border-l border-gray-200 shadow-xl opacity-100">
-        <SheetHeader>
-          <SheetTitle className="flex items-center gap-2 text-black">
-            <ShoppingCart className="h-5 w-5" /> Корзина ({totalItems()} пар)
-          </SheetTitle>
-        </SheetHeader>
+      <SheetContent className="w-full sm:max-w-md flex flex-col bg-white text-black p-0 border-none">
+        <div className="p-6 border-b">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2 text-black text-xl">
+              <ShoppingCart className="h-6 w-6 text-blue-600" /> 
+              Корзина <span className="text-gray-400 text-sm font-normal">({totals.totalQty} пар)</span>
+            </SheetTitle>
+          </SheetHeader>
+        </div>
 
         {items.length === 0 ? (
-          <div className="flex-grow flex flex-col items-center justify-center space-y-4 bg-white">
-            <div className="bg-gray-100 p-6 rounded-full">
-              <ShoppingCart className="h-12 w-12 text-gray-400" />
+          <div className="flex-grow flex flex-col items-center justify-center space-y-4 p-6">
+            <div className="bg-gray-50 p-8 rounded-full text-gray-300">
+              <ShoppingCart className="h-16 w-16" />
             </div>
             <p className="text-gray-500 font-medium">Ваша корзина пуста</p>
           </div>
         ) : (
           <>
-            <ScrollArea className="flex-grow pr-4 -mr-4 mt-6">
-              <div className="space-y-4">
-                {items.map((item, index) => (
-                  <div key={`${item.id}-${item.selectedColor || index}`} className="flex gap-4 border-b pb-4 border-gray-100">
-                    <div className="h-20 w-20 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 shrink-0">
+            <ScrollArea className="flex-grow p-6">
+              <div className="space-y-6">
+                {items.map((item) => (
+                  <div key={item.productId} className="flex gap-4 group">
+                    <div className="h-20 w-20 rounded-xl overflow-hidden border border-gray-100 bg-gray-50 shrink-0 shadow-sm">
                       <img src={item.main_photo} alt={item.name} className="h-full w-full object-cover" />
                     </div>
-                    <div className="flex-grow space-y-1">
-                      <h4 className="font-bold text-sm text-black line-clamp-1">{item.name}</h4>
-                      <p className="text-xs text-gray-500">
-                        {item.category} • {item.price} сом/пара
-                        {item.selectedColor && <span className="ml-1">• {item.selectedColor}</span>}
+                    <div className="flex-grow min-w-0">
+                      <h4 className="font-bold text-sm text-gray-900 line-clamp-1">{item.name}</h4>
+                      <p className="text-xs text-gray-500 mb-2">
+                        {item.price} сом/пара {item.selectedColor && `• Цвет: ${item.selectedColor}`}
                       </p>
                       
-                      <div className="flex items-center justify-between pt-2">
-                        <div className="flex items-center border border-gray-300 rounded-md bg-white">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden shadow-sm bg-gray-50">
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="h-7 w-7 rounded-none text-black hover:bg-gray-100"
-                            onClick={() => updateQuantity(item.id, Math.max(item.min_order_quantity, item.quantity - 6), item.selectedColor)}
+                            className="h-8 w-8 text-blue-600 hover:bg-white"
+                            onClick={() => removeItem(item.productId, item.min_order_quantity || 6)}
                           >
                             <Minus className="h-3 w-3" />
                           </Button>
-                          <span className="w-8 text-center text-xs font-bold text-black">{item.quantity}</span>
+                          <span className="px-3 text-xs font-bold text-gray-700">{item.quantity}</span>
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="h-7 w-7 rounded-none text-black hover:bg-gray-100"
-                            onClick={() => updateQuantity(item.id, item.quantity + 6, item.selectedColor)}
+                            className="h-8 w-8 text-blue-600 hover:bg-white"
+                            onClick={() => addItem(item, item.min_order_quantity || 6)}
                           >
                             <Plus className="h-3 w-3" />
                           </Button>
@@ -138,10 +134,10 @@ export function CartDrawer() {
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => removeItem(item.id, item.selectedColor)}
+                          className="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50"
+                          onClick={() => removeItem(item.productId, item.quantity)}
                         >
-                          <Trash2 className="h-3 w-3" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
@@ -150,58 +146,47 @@ export function CartDrawer() {
               </div>
             </ScrollArea>
 
-            <div className="space-y-4 pt-6 bg-white">
-              <Separator className="bg-gray-200" />
-              <div className="space-y-1.5">
-                <div className="flex justify-between text-sm text-black">
-                  <span className="text-gray-500">Товаров в корзине</span>
-                  <span>{items.length} поз.</span>
+            <div className="p-6 bg-gray-50/50 border-t space-y-4">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>Общее количество</span>
+                  <span className="font-medium">{totals.totalQty} пар</span>
                 </div>
-                <div className="flex justify-between font-bold text-lg text-black">
-                  <span>Итого к оплате</span>
-                  <span className="text-primary">{totalPrice()} сом</span>
-                </div>
-              </div>
-
-              <Separator className="bg-gray-200" />
-              
-              <div className="space-y-3">
-                <p className="text-sm font-semibold text-black">Ваши контактные данные:</p>
-                <div className="space-y-2">
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input 
-                      placeholder="Ваше имя" 
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      className="pl-10 bg-white border-gray-300 text-black placeholder:text-gray-400"
-                    />
-                  </div>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input 
-                      placeholder="+996..." 
-                      value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
-                      className="pl-10 bg-white border-gray-300 text-black placeholder:text-gray-400"
-                    />
-                  </div>
+                <div className="flex justify-between text-xl font-black text-gray-900">
+                  <span>Итого</span>
+                  <span className="text-blue-700">{totals.totalPrice} сом</span>
                 </div>
               </div>
 
-              <SheetFooter className="flex flex-col gap-2 pb-4">
-                <Button 
-                  className="w-full h-12 text-base font-bold bg-primary hover:bg-primary/90 text-white" 
-                  onClick={handleCheckout}
-                  disabled={isSubmitting}
-                >
-                  <Send className="mr-2 h-5 w-5" /> 
-                  {isSubmitting ? "Отправка..." : "Оформить заказ"}
-                </Button>
-                <p className="text-[10px] text-center text-gray-400">
-                  После оформления менеджер свяжется с вами для уточнения деталей доставки и оплаты.
-                </p>
-              </SheetFooter>
+              <div className="space-y-3 pt-2">
+                <div className="relative">
+                  <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input 
+                    placeholder="Ваше имя" 
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    className="pl-10 h-11 border-gray-200 focus:border-blue-500"
+                  />
+                </div>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input 
+                    placeholder="Номер телефона" 
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    className="pl-10 h-11 border-gray-200 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <Button 
+                className="w-full h-12 text-base font-bold bg-blue-700 hover:bg-blue-800 text-white rounded-xl transition-all shadow-lg shadow-blue-200" 
+                onClick={handleCheckout}
+                disabled={isSubmitting || items.length === 0}
+              >
+                {isSubmitting ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : <Send className="mr-2 h-5 w-5" />}
+                {isSubmitting ? "Отправка..." : "Оформить заказ через WhatsApp"}
+              </Button>
             </div>
           </>
         )}
