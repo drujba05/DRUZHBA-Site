@@ -44,7 +44,7 @@ export default function AdminPage() {
 
   // ФУНКЦИЯ ВХОДА (Пароль: Medina050891)
   const handleLogin = () => {
-    if (password === "admin123") {
+    if (password === "Medina 050891") {
       setIsAuthenticated(true);
       toast({ title: "Доступ разрешен", description: "Добро пожаловать в панель управления" });
     } else {
