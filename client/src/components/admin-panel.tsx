@@ -1,4 +1,4 @@
-import { useForm } from "react-hook-form";
+  import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,7 @@ const productSchema = z.object({
   description: z.string().optional(),
   price: z.coerce.number().min(1, "Цена > 0"),
   sizes: z.string().min(1, "Укажите размеры"),
-  colors: z.string().min(1, "Укажите цвета через запятую"),
+  colors: z.string().min(1, "Укажите цвета"),
   status: z.enum(["В наличии", "Нет в наличии", "Ожидается поступление"]),
   season: z.enum(["Зима", "Лето", "Демисезон", "Все сезоны"]),
   gender: z.enum(["Универсальные", "Женские", "Мужские", "Детские"]),
@@ -99,16 +99,16 @@ export function AdminPanel({ products = [], onAddProduct, onUpdateProduct, onDel
     try {
       if (editingId) {
         await onUpdateProduct(editingId, { ...values, main_photo, additional_photos });
-        toast({ title: "Обновлено!" });
+        toast({ title: "Обновлено успешно" });
         setEditingId(null);
       } else {
         await onAddProduct({ ...values, main_photo, additional_photos });
-        toast({ title: "Добавлено!" });
+        toast({ title: "Товар добавлен" });
       }
       form.reset();
       setPreviews([]);
     } catch (error) {
-      toast({ title: "Ошибка", variant: "destructive" });
+      toast({ title: "Ошибка сохранения", variant: "destructive" });
     }
   }
 
@@ -117,22 +117,19 @@ export function AdminPanel({ products = [], onAddProduct, onUpdateProduct, onDel
       <div className="grid lg:grid-cols-12 gap-8">
         <div className="lg:col-span-5">
           <Card className="border-t-4 border-t-blue-600 shadow-lg sticky top-6">
-            <CardHeader><CardTitle>{editingId ? "📝 Редактирование" : "➕ Новый товар"}</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{editingId ? "📝 Правка" : "➕ Новый товар"}</CardTitle></CardHeader>
             <CardContent>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <FormField control={form.control} name="name" render={({ field }) => (
                     <FormItem><FormLabel>Название</FormLabel><Input {...field} /></FormItem>
                   )} />
-                  
                   <FormField control={form.control} name="description" render={({ field }) => (
-                    <FormItem><FormLabel>Описание</FormLabel><Textarea {...field} className="min-h-[60px]" /></FormItem>
+                    <FormItem><FormLabel>Описание</FormLabel><Textarea placeholder="Опишите модель..." {...field} className="min-h-[60px]" /></FormItem>
                   )} />
-
                   <FormField control={form.control} name="colors" render={({ field }) => (
-                    <FormItem><FormLabel className="flex items-center gap-1"><Palette size={14} className="text-blue-500"/> Цвета (через запятую)</FormLabel><Input placeholder="Черный, Синий, Серый" {...field} /></FormItem>
+                    <FormItem><FormLabel className="flex items-center gap-1"><Palette size={14} className="text-blue-500"/> Цвета</FormLabel><Input placeholder="Черный, Синий" {...field} /></FormItem>
                   )} />
-
                   <div className="grid grid-cols-3 gap-3">
                     <FormField control={form.control} name="price" render={({ field }) => (
                       <FormItem><FormLabel>Цена</FormLabel><Input type="number" {...field} /></FormItem>
@@ -144,7 +141,6 @@ export function AdminPanel({ products = [], onAddProduct, onUpdateProduct, onDel
                       <FormItem><FormLabel>В коробке</FormLabel><Input type="number" {...field} /></FormItem>
                     )} />
                   </div>
-
                   <div className="grid grid-cols-2 gap-3">
                     <FormField control={form.control} name="status" render={({ field }) => (
                       <FormItem><FormLabel>Статус</FormLabel>
@@ -162,8 +158,7 @@ export function AdminPanel({ products = [], onAddProduct, onUpdateProduct, onDel
                       <FormItem><FormLabel>Мин. заказ (пар)</FormLabel><Input type="number" {...field} /></FormItem>
                     )} />
                   </div>
-
-                  <div className="flex gap-4 p-3 bg-blue-50/50 rounded-lg border border-blue-100">
+                  <div className="flex gap-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
                     <FormField control={form.control} name="is_bestseller" render={({ field }) => (
                       <FormItem className="flex items-center gap-2 space-y-0">
                         <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
@@ -177,14 +172,13 @@ export function AdminPanel({ products = [], onAddProduct, onUpdateProduct, onDel
                       </FormItem>
                     )} />
                   </div>
-
                   <div className="space-y-3">
                     <Label className="text-[11px] font-black uppercase text-slate-400">Фотографии</Label>
                     <div className="grid grid-cols-4 gap-2">
                       {previews.map((src, i) => (
                         <div key={i} className="relative aspect-square border-2 rounded-lg overflow-hidden group">
                           <img src={src} className="w-full h-full object-cover" />
-                          <button type="button" onClick={() => setPreviews(p => p.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100"><X size={10}/></button>
+                          <button type="button" onClick={() => setPreviews(p => p.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"><X size={10}/></button>
                         </div>
                       ))}
                       <button type="button" onClick={() => fileInputRef.current?.click()} className="aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-slate-400 hover:text-blue-600 bg-slate-50 transition-all">
@@ -193,16 +187,14 @@ export function AdminPanel({ products = [], onAddProduct, onUpdateProduct, onDel
                     </div>
                     <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" multiple accept="image/*" />
                   </div>
-
-                  <Button type="submit" className="w-full h-14 text-lg font-black uppercase bg-blue-600 hover:bg-blue-700">
-                    {editingId ? "Сохранить" : "Добавить"}
+                  <Button type="submit" className="w-full h-14 text-lg font-black uppercase bg-blue-600 hover:bg-blue-700 shadow-md">
+                    {editingId ? "Сохранить изменения" : "Опубликовать"}
                   </Button>
                 </form>
               </Form>
             </CardContent>
           </Card>
         </div>
-
         <div className="lg:col-span-7">
           <Card className="shadow-lg border-slate-200">
             <CardHeader className="bg-white border-b py-5 flex flex-row items-center justify-between">
@@ -230,25 +222,15 @@ export function AdminPanel({ products = [], onAddProduct, onUpdateProduct, onDel
                           </div>
                         </td>
                         <td className="p-4 text-center text-[11px]">
-                          <div className="font-bold text-blue-600">{p.sizes}</div>
-                          <div className="text-slate-400">Мин: {p.min_order_quantity}п.</div>
+                          <div className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full inline-flex items-center gap-1 mb-1 ${
+                            p.status === "В наличии" ? "bg-green-100 text-green-700" :
+                            p.status === "Ожидается поступление" ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700"
+                          }`}>
+                            {p.status}
+                          </div>
+                          <div className="font-bold text-slate-500 uppercase">{p.sizes}</div>
                         </td>
                         <td className="p-4 font-black text-blue-600">{p.price} сом</td>
                         <td className="p-4 text-right">
                           <div className="flex justify-end gap-2">
-                            <Button variant="outline" size="sm" className="text-blue-600 border-blue-200" onClick={() => {setEditingId(p.id); window.scrollTo(0,0);}}>ПРАВКА</Button>
-                            <Button variant="outline" size="icon" className="text-rose-500 border-rose-100" onClick={() => {if(confirm('Удалить?')) onDeleteProduct(p.id)}}><Trash2 size={15} /></Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
-  );
-  }
+                            <Button variant="outline" size="sm" className="h-9 px-3 border-blue-200 text-blue-600 font-bold text-[10px] hover:bg-blue-600 hover:text-white" onClick={() => {setEditingId(
