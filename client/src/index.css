@@ -29,48 +29,64 @@
   }
 }
 
-/* --- МОИ ИСПРАВЛЕНИЯ ДЛЯ МОБИЛЬНОЙ ВЕРСИИ --- */
+/* --- ФИНАЛЬНЫЙ ФИКС ПРОЗРАЧНОСТИ И ШРИФТОВ --- */
 
-/* 1. Делаем ВСЕ всплывающие окна (корзину, быстрый просмотр) белыми */
+/* 1. Модальные окна (Корзина, Быстрый заказ, Лист контент) */
 div[role="dialog"], 
-[data-state="open"],
-.sheet-content {
+.sheet-content, 
+[data-radix-portal] [role="dialog"],
+[data-state="open"].fixed {
     background-color: #ffffff !important;
+    background: white !important;
     color: #000000 !important;
     opacity: 1 !important;
-    box-shadow: 0 0 25px rgba(0,0,0,0.3) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: none !important;
 }
 
-/* 2. Делаем уведомления (Toast) "Товар добавлен" белыми и жирными */
-ol[dir="ltr"] li,
+/* 2. Текст внутри всех всплывающих окон */
+[role="dialog"] h2, 
+[role="dialog"] p, 
+[role="dialog"] label, 
+[role="dialog"] span, 
+[role="dialog"] div {
+    color: #000000 !important;
+    opacity: 1 !important;
+}
+
+/* 3. Затемнение фона (Overlay) — делаем максимально темным без блюра окна */
+div[data-state="open"].fixed.inset-0:not([role="dialog"]) {
+    background-color: rgba(0, 0, 0, 0.85) !important;
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+}
+
+/* 4. Поля ввода (Input) внутри модалок */
+[role="dialog"] input {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #cccccc !important;
+    opacity: 1 !important;
+}
+
+/* 5. Уведомления (Toast) "Добавлено в корзину" */
+ol[dir="ltr"] li, 
 div[role="status"] {
     background-color: #ffffff !important;
     color: #000000 !important;
-    border: 2px solid #2563eb !important; /* Синяя рамка */
+    border: 2px solid #2563eb !important;
     opacity: 1 !important;
     box-shadow: 0 5px 15px rgba(0,0,0,0.2) !important;
 }
 
-/* 3. Исправляем текст внутри уведомлений, чтобы он не был белым на белом */
+/* 6. Текст в уведомлениях */
 [role="status"] div, 
-[role="status"] p,
-[role="status"] h1,
-[role="status"] h2 {
+[role="status"] p {
     color: #000000 !important;
 }
 
-/* 4. Затемнение экрана под окном (делаем его очень темным) */
-div[data-state="open"] + div {
-    background-color: rgba(0, 0, 0, 0.85) !important;
-    backdrop-filter: blur(4px) !important;
-}
-
-/* 5. Фикс для кнопок внутри белых окон */
-div[role="dialog"] button {
-    opacity: 1 !important;
-}
-
-/* 6. Чтобы текст в корзине точно был черным */
+/* 7. Исправление для мелких надписей в карточках (Размеры/Заказ) */
 .text-muted-foreground {
-    color: #4b5563 !important; /* Темно-серый вместо прозрачного */
+    color: #4b5563 !important;
 }
