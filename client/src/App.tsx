@@ -11,6 +11,8 @@ import Returns from "@/pages/returns";
 import AdminPage from "@/pages/admin";
 import Catalog from "@/pages/catalog";
 import EvaGaloshi from "@/pages/eva-galoshi";
+// Импортируем страницу корзины
+import CartPage from "@/pages/cart"; 
 
 function Router() {
   return (
@@ -21,8 +23,14 @@ function Router() {
       <Route path="/about" component={About} />
       <Route path="/delivery" component={Delivery} />
       <Route path="/returns" component={Returns} />
+      
+      {/* Путь для корзины */}
+      <Route path="/cart" component={CartPage} /> 
+      
       <Route path="/admin" component={AdminPage} />
       <Route path="/upravlenie" component={AdminPage} />
+      
+      {/* Если ни один путь не подошел, покажется 404 */}
       <Route component={NotFound} />
     </Switch>
   );
