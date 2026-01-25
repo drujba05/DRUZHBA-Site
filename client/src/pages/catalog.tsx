@@ -3,10 +3,21 @@ import { Link } from "wouter";
 import { useProducts } from "@/lib/products";
 import { ProductCard } from "@/components/product-card";
 import { CartDrawer } from "@/components/cart-drawer";
-import { ArrowLeft, MapPin, Phone, Clock, MessageCircle, Star, ShieldCheck } from "lucide-react";
+import { ArrowLeft, MapPin, Phone, Clock, MessageCircle, Star, ShieldCheck, Filter } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function Catalog() {
   const { products } = useProducts();
+  const [selectedSeason, setSelectedSeason] = useState("Все");
+
+  // Список сезонов для кнопок
+  const seasons = ["Все", "Зима", "Лето", "Демисезон"];
+
+  // Логика фильтрации
+  const filteredProducts = products.filter((product) => {
+    if (selectedSeason === "Все") return true;
+    return product.season === selectedSeason;
+  });
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -22,17 +33,54 @@ export default function Catalog() {
 
       {/* Основной каталог */}
       <main className="container mx-auto px-4 py-8 flex-grow">
-        <div className="flex items-center gap-3 mb-8 border-l-4 border-blue-600 pl-4">
-          <h1 className="text-2xl font-bold uppercase tracking-tight text-slate-900">
-            Каталог продукции
-          </h1>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-3 border-l-4 border-blue-600 pl-4">
+            <h1 className="text-2xl font-bold uppercase tracking-tight text-slate-900">
+              Каталог продукции
+            </h1>
+          </div>
+
+          {/* КНОПКИ ФИЛЬТРАЦИИ */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
+            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+              {seasons.map((season) => (
+                <button
+                  key={season}
+                  onClick={() => setSelectedSeason(season)}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold uppercase transition-all ${
+                    selectedSeason === season
+                      ? "bg-white text-blue-600 shadow-sm"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  {season}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-        
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+
+        {/* СЕТКА ТОВАРОВ */}
+        {filteredProducts.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            {filteredProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        ) : (
+          <div className="py-20 text-center">
+            <Filter className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-slate-900">Товары не найдены</h3>
+            <p className="text-slate-500">В категории "{selectedSeason}" пока нет товаров.</p>
+            <Button 
+              variant="link" 
+              onClick={() => setSelectedSeason("Все")}
+              className="mt-2 text-blue-600"
+            >
+              Показать все товары
+            </Button>
+          </div>
+        )}
       </main>
 
       {/* Секция Контакты и О Компании */}
@@ -40,25 +88,23 @@ export default function Catalog() {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
             
-            {/* Описание */}
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-white uppercase tracking-wider">DRUZHBAA</h2>
               <p className="text-slate-400 leading-relaxed">
-                Ваш надежный партнер на рынке «Дордой». Мы предлагаем широкий ассортимент качественной одежды по доступным ценам. Работаем напрямую, гарантируя лучшее предложение.
+                Ваш надежный партнер на рынке «Дордой». Мы предлагаем широкий ассортимент качественной обуви собственного производства по доступным ценам.
               </p>
               <div className="flex gap-3">
                 <div className="bg-slate-800 p-2 rounded border border-slate-700 flex items-center gap-2">
                   <Star className="text-yellow-500 h-4 w-4" />
-                  <span className="text-[10px] font-bold uppercase">Качество</span>
+                  <span className="text-[10px] font-bold uppercase text-white">Качество</span>
                 </div>
                 <div className="bg-slate-800 p-2 rounded border border-slate-700 flex items-center gap-2">
                   <ShieldCheck className="text-green-500 h-4 w-4" />
-                  <span className="text-[10px] font-bold uppercase">Надежность</span>
+                  <span className="text-[10px] font-bold uppercase text-white">Надежность</span>
                 </div>
               </div>
             </div>
 
-            {/* Контакты */}
             <div className="space-y-6">
               <h3 className="text-white font-bold uppercase text-sm tracking-widest border-b border-white/10 pb-2">Контакты</h3>
               <div className="space-y-4">
@@ -83,7 +129,6 @@ export default function Catalog() {
               </div>
             </div>
 
-            {/* График работы */}
             <div className="space-y-6">
               <h3 className="text-white font-bold uppercase text-sm tracking-widest border-b border-white/10 pb-2">График работы</h3>
               <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
@@ -102,7 +147,7 @@ export default function Catalog() {
           </div>
           
           <div className="mt-16 pt-8 border-t border-white/5 text-center">
-            <p className="text-[10px] opacity-30 uppercase tracking-[0.2em]">
+            <p className="text-[10px] opacity-30 uppercase tracking-[0.2em] text-white">
               © 2026 DRUZHBAA • Дордой • Все права защищены
             </p>
           </div>
@@ -110,4 +155,4 @@ export default function Catalog() {
       </footer>
     </div>
   );
-}
+            }
