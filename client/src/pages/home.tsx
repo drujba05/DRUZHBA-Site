@@ -14,6 +14,7 @@ import {
   Flame,
   Sparkles,
   ArrowRight,
+  LayoutGrid,
 } from "lucide-react";
 import { CartDrawer } from "@/components/cart-drawer";
 import heroImage from "@assets/generated_images/modern_aesthetic_wholesale_footwear_display_background.png";
@@ -101,13 +102,17 @@ export default function Home() {
               вашего бизнеса.
             </p>
 
+            {/* КНОПКИ (ИСПРАВЛЕННЫЙ КАТАЛОГ) */}
             <div className="flex flex-col sm:flex-row gap-6 mt-4 w-full sm:w-auto">
               <Button
                 size="lg"
-                className="bg-primary hover:bg-primary/90 text-white border-0 shadow-xl shadow-blue-900/30 text-lg h-14 px-10 rounded-full transition-all hover:scale-105"
+                className="bg-white hover:bg-gray-100 text-[#581c8b] border-0 shadow-xl shadow-black/20 text-lg h-14 px-10 rounded-full transition-all hover:scale-105"
                 onClick={() => (window.location.href = "/catalog")}
               >
-                <ShoppingBag className="mr-3 h-6 w-6" /> Каталог
+                <div className="bg-[#581c8b] p-1.5 rounded-full mr-3">
+                    <LayoutGrid className="h-5 w-5 text-white" />
+                </div>
+                Каталог
               </Button>
               <Button
                 size="lg"
@@ -140,7 +145,7 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Bestsellers Section */}
+      {/* Остальная часть кода без изменений */}
       {products.filter((p) => p.is_bestseller).length > 0 && (
         <section className="py-16 bg-gradient-to-b from-orange-50 to-white">
           <div className="container mx-auto px-4">
@@ -176,7 +181,6 @@ export default function Home() {
         </section>
       )}
 
-      {/* New Products Section */}
       {products.filter((p) => p.is_new).length > 0 && (
         <section className="py-16 bg-gradient-to-b from-green-50 to-white">
           <div className="container mx-auto px-4">
@@ -212,7 +216,6 @@ export default function Home() {
         </section>
       )}
 
-      {/* Features Banner */}
       <div className="bg-white border-b">
         <div className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
@@ -249,28 +252,6 @@ export default function Home() {
         </div>
       </div>
 
-      {showCatalog && (
-        <main
-          className="container mx-auto px-4 py-12 animate-in fade-in slide-in-from-bottom duration-500"
-          id="catalog-tabs"
-        >
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-3xl font-heading font-bold text-gray-800">
-              Наш ассортимент
-            </h2>
-            <span className="text-muted-foreground">
-              {products.length} товаров
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        </main>
-      )}
-
       <footer className="bg-gray-900 text-gray-300 py-12">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -286,30 +267,9 @@ export default function Home() {
             <div>
               <h4 className="font-bold text-white mb-4">Информация</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li>
-                  <Link
-                    href="/about"
-                    className="hover:text-white transition-colors"
-                  >
-                    О нас
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/delivery"
-                    className="hover:text-white transition-colors"
-                  >
-                    Доставка и оплата
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/returns"
-                    className="hover:text-white transition-colors"
-                  >
-                    Возврат товара
-                  </Link>
-                </li>
+                <li><Link href="/about" className="hover:text-white transition-colors">О нас</Link></li>
+                <li><Link href="/delivery" className="hover:text-white transition-colors">Доставка и оплата</Link></li>
+                <li><Link href="/returns" className="hover:text-white transition-colors">Возврат товара</Link></li>
               </ul>
             </div>
             <div>
@@ -318,16 +278,11 @@ export default function Home() {
                 <li>Телефон: +996 557 650 131</li>
                 <li>Telegram: @DRUZHBAA_Bot</li>
                 <li className="text-gray-400">
-                  <span className="block font-semibold text-white mb-1">
-                    График работы:
-                  </span>
-                  Пн – Чт, Сб – Вс: 08:00 – 17:00
-                  <br />
+                  <span className="block font-semibold text-white mb-1">График работы:</span>
+                  Пн – Чт, Сб – Вс: 08:00 – 17:00<br />
                   <span className="text-red-400">Пятница: Выходной</span>
                 </li>
-                <li>
-                  Адрес: Рынок "Дордой", Оберон Форт, 30 проход, 2 контейнер
-                </li>
+                <li>Адрес: Рынок "Дордой", Оберон Форт, 30 проход, 2 контейнер</li>
               </ul>
             </div>
             <div className="flex flex-col items-center md:items-start">
@@ -337,22 +292,8 @@ export default function Home() {
                   src="https://quickchart.io/qr?text=https://druzhbas.live&size=300&margin=2"
                   alt="QR код сайта DRUZHBA"
                   className="w-32 h-32"
-                  data-testid="img-qr-code"
                 />
               </div>
-              <a
-                href="https://quickchart.io/qr?text=https://druzhbas.live&size=500&margin=2&format=png"
-                download="druzhba-qr-code.png"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-3 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md transition-colors"
-                data-testid="button-download-qr"
-              >
-                Скачать QR-код
-              </a>
-              <p className="text-xs text-gray-500 mt-2 text-center">
-                druzhbas.live
-              </p>
             </div>
           </div>
           <div className="border-t border-gray-800 mt-12 pt-8 text-center text-xs text-gray-500">
@@ -362,4 +303,4 @@ export default function Home() {
       </footer>
     </div>
   );
-}
+              }
