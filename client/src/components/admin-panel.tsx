@@ -4,9 +4,6 @@ import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trash2, X, ImagePlus, Loader2 } from "lucide-react";
@@ -16,11 +13,10 @@ import { useUpload } from "@/hooks/use-upload";
 const productSchema = z.object({
   name: z.string().min(2),
   category: z.string().min(2),
-  description: z.string().optional(),
   price: z.coerce.number().min(1),
   sizes: z.string().min(1),
   colors: z.string().min(1),
-  status: z.enum(["В наличии", "Нет в наличии", "Ожидается поступление"]),
+  status: z.string(),
   min_order_quantity: z.coerce.number().min(1),
   pairs_per_box: z.coerce.number().min(1),
   is_bestseller: z.boolean().optional(),
@@ -38,7 +34,7 @@ export function AdminPanel({ products = [], onAddProduct, onUpdateProduct, onDel
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
     defaultValues: {
-      name: "", category: "Обувь", description: "", price: 0, sizes: "36-41", colors: "",
+      name: "", category: "Обувь", price: 0, sizes: "36-41", colors: "",
       status: "В наличии", min_order_quantity: 6, pairs_per_box: 12, is_bestseller: false, is_new: false,
     },
   });
@@ -82,19 +78,19 @@ export function AdminPanel({ products = [], onAddProduct, onUpdateProduct, onDel
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
       <Card>
-        <CardHeader><CardTitle>{editingId ? "Правка" : "Новый товар"}</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{editingId ? "Редактирование" : "Новый товар"}</CardTitle></CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <div className="grid grid-cols-4 gap-2">
                 {previews.map((s, i) => (
                   <div key={i} className="relative aspect-square border rounded">
-                    <img src={s} className="w-full h-full object-cover" />
-                    <Button type="button" variant="destructive" size="icon" className="absolute top-0 right-0 h-5 w-5" onClick={() => setPreviews(p => p.filter((_, idx) => idx !== i))}><X size={10}/></Button>
+                    <img src={s} className="w-full h-full object-cover rounded" />
+                    <Button type="button" variant="destructive" size="icon" className="absolute -top-1 -right-1 h-5 w-5 rounded-full" onClick={() => setPreviews(p => p.filter((_, idx) => idx !== i))}><X size={10}/></Button>
                   </div>
                 ))}
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="aspect-square border-2 border-dashed flex items-center justify-center bg-slate-50">
-                  {isUploading ? <Loader2 className="animate-spin" /> : <ImagePlus />}
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="aspect-square border-2 border-dashed flex flex-col items-center justify-center bg-slate-50 rounded">
+                  {isUploading ? <Loader2 className="animate-spin text-blue-500" /> : <ImagePlus className="text-slate-400" />}
                 </button>
               </div>
               <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" multiple accept="image/*" />
@@ -105,24 +101,31 @@ export function AdminPanel({ products = [], onAddProduct, onUpdateProduct, onDel
               <div className="grid grid-cols-3 gap-4">
                 <FormField control={form.control} name="price" render={({ field }) => <FormItem><FormLabel>Цена</FormLabel><Input type="number" {...field} /></FormItem>} />
                 <FormField control={form.control} name="min_order_quantity" render={({ field }) => <FormItem><FormLabel>Мин. заказ</FormLabel><Input type="number" {...field} /></FormItem>} />
-                <FormField control={form.control} name="pairs_per_box" render={({ field }) => <FormItem><FormLabel>Коробка</FormLabel><Input type="number" {...field} /></FormItem>} />
+                <FormField control={form.control} name="pairs_per_box" render={({ field }) => <FormItem><FormLabel>В коробке</FormLabel><Input type="number" {...field} /></FormItem>} />
               </div>
-              <Button type="submit" disabled={isUploading} className="w-full">{isUploading ? "Загрузка..." : "Сохранить"}</Button>
+              <Button type="submit" disabled={isUploading} className="w-full bg-blue-600 hover:bg-blue-700">
+                {isUploading ? "Загрузка..." : editingId ? "Обновить" : "Сохранить товар"}
+              </Button>
             </form>
           </Form>
         </CardContent>
       </Card>
+
       <div className="space-y-2">
+        <h3 className="font-bold text-slate-500 uppercase text-xs">Список товаров ({products.length})</h3>
         {products.map((p: any) => (
-          <div key={p.id} className="flex items-center justify-between p-2 border rounded bg-white">
-            <div className="flex items-center gap-2"><img src={p.main_photo} className="w-8 h-8 object-cover" /> <span className="text-xs font-bold">{p.name}</span></div>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => {setEditingId(p.id); window.scrollTo(0,0);}}>Правка</Button>
-              <Button size="sm" variant="ghost" className="text-red-500" onClick={() => onDeleteProduct(p.id)}>Удалить</Button>
+          <div key={p.id} className="flex items-center justify-between p-2 border rounded bg-white shadow-sm">
+            <div className="flex items-center gap-2">
+              <img src={p.main_photo} className="w-10 h-10 object-cover rounded" />
+              <div className="flex flex-col"><span className="text-xs font-bold leading-none">{p.name}</span><span className="text-[10px] text-blue-600 font-bold">{p.price} сом</span></div>
+            </div>
+            <div className="flex gap-1">
+              <Button size="sm" variant="outline" className="h-8 text-[10px]" onClick={() => {setEditingId(p.id); window.scrollTo({top: 0, behavior: 'smooth'});}}>ПРАВКА</Button>
+              <Button size="icon" variant="ghost" className="h-8 w-8 text-red-400" onClick={() => onDeleteProduct(p.id)}><Trash2 size={14} /></Button>
             </div>
           </div>
         ))}
       </div>
     </div>
   );
-    }
+                                            }
