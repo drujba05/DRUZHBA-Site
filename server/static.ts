@@ -7,18 +7,21 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(__dirname, "public");
+  // Пытаемся найти папку 'dist' в корне или 'public' в server
+  const distPath = path.resolve(__dirname, "..", "dist");
+  const publicPath = path.resolve(__dirname, "public");
+  
+  const finalPath = fs.existsSync(distPath) ? distPath : publicPath;
 
-  if (!fs.existsSync(distPath)) {
-    throw new Error(
-      `Could not find the build directory: ${distPath}. Make sure to build the client first.`,
-    );
+  if (!fs.existsSync(finalPath)) {
+    // Если папки нет, сервер не упадет сразу, а выведет инфо в консоль
+    console.log(`Warning: Build directory not found at ${finalPath}`);
+    return;
   }
 
-  app.use(express.static(distPath));
+  app.use(express.static(finalPath));
 
-  // fall through to index.html for SPA
   app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+    res.sendFile(path.resolve(finalPath, "index.html"));
   });
 }
