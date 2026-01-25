@@ -28,30 +28,26 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  /* КЛАСС ДЛЯ ОДИНАКОВЫХ ИКОНОК (Как у WhatsApp/Telegram) */
+  /* Стиль для иконки Каталога как у WhatsApp/Telegram */
   .icon-circle {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
+    width: 42px;
+    height: 42px;
     border-radius: 50%;
-    background: white;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    transition: transform 0.2s;
-  }
-  .icon-circle:active {
-    transform: scale(0.9);
+    background: #ffffff !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    border: 1px solid #f0f0f0;
   }
 }
 
-/* --- ФИНАЛЬНЫЙ ФИКС ПРОЗРАЧНОСТИ И ИНТЕРФЕЙСА --- */
+/* --- ГЛОБАЛЬНЫЙ ФИКС ПРОЗРАЧНОСТИ --- */
 
-/* 1. Модальные окна и боковые панели (Корзина, Заказ) */
+/* 1. ОСНОВНЫЕ ОКНА (Корзина, Быстрый заказ) */
 div[role="dialog"], 
 .sheet-content, 
-[data-radix-portal] [role="dialog"],
-div[data-state="open"].fixed {
+[data-radix-portal] [role="dialog"] {
     background-color: #ffffff !important;
     background: white !important;
     color: #000000 !important;
@@ -60,52 +56,47 @@ div[data-state="open"].fixed {
     -webkit-backdrop-filter: none !important;
 }
 
-/* 2. Текст внутри всех всплывающих окон (жестко черный) */
-[role="dialog"] h2, 
-[role="dialog"] p, 
-[role="dialog"] label, 
-[role="dialog"] span, 
-[role="dialog"] div,
-.sheet-content * {
+/* 2. ТЕКСТ ВНУТРИ ОКОН */
+[role="dialog"] *, .sheet-content * {
     color: #000000 !important;
-    opacity: 1 !important;
 }
 
-/* 3. Оверлей (Затемнение под окном) */
-div[data-state="open"].fixed.inset-0:not([role="dialog"]) {
-    background-color: rgba(0, 0, 0, 0.8) !important;
-    backdrop-filter: blur(4px) !important;
-}
-
-/* 4. ЖЕСТКИЙ ФИКС ДЛЯ УВЕДОМЛЕНИЙ (Toast) */
-/* Нацеливаемся на вьюпорт и сами элементы списка уведомлений */
-[data-radix-toast-viewport] ol,
+/* 3. ЖЕСТКИЙ ФИКС ДЛЯ УВЕДОМЛЕНИЙ (Toast / Sonner) */
+/* Мы обнуляем внутренние переменные библиотеки, которые делают её прозрачной */
+[data-sonner-toast], 
 [data-radix-toast-viewport] li,
 div[role="status"],
-.Toastify__toast {
+.toast,
+[data-rich-colors="true"] {
+    --normal-bg: #ffffff !important;
+    --normal-border: #2563eb !important;
+    --bg: #ffffff !important;
     background-color: #ffffff !important;
     background: white !important;
     color: #000000 !important;
     opacity: 1 !important;
     border: 2px solid #2563eb !important;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2) !important;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2) !important;
     backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
 }
 
-/* Весь текст внутри уведомления */
+/* Текст внутри уведомления */
+[data-sonner-toast] *, 
 [data-radix-toast-viewport] * {
     color: #000000 !important;
     opacity: 1 !important;
 }
 
-/* 5. Поля ввода (Input) */
+/* 4. ОВЕРЛЕЙ (Затемнение фона) */
+div[data-state="open"].fixed.inset-0:not([role="dialog"]) {
+    background-color: rgba(0, 0, 0, 0.8) !important;
+    backdrop-filter: blur(4px) !important;
+}
+
+/* 5. ИНПУТЫ */
 [role="dialog"] input {
     background-color: #ffffff !important;
     color: #000000 !important;
     border: 1px solid #cccccc !important;
-}
-
-/* 6. Исправление мелкого текста в карточках */
-.text-muted-foreground {
-    color: #4b5563 !important;
-}
+  }
