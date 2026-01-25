@@ -2,7 +2,7 @@ import { Product } from "@/lib/products";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
-import { ShoppingCart, Ruler, Box, CloudSun, Loader2, Minus, Plus, Palette } from "lucide-react";
+import { ShoppingCart, Ruler, Box, CloudSun, Loader2, Minus, Plus, Palette, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -11,7 +11,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,16 +31,24 @@ export function ProductCard({ product }: ProductCardProps) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mode, setMode] = useState<"quick" | "cart">("quick");
+  
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
   
-  // Логика цветов: превращаем строку из базы в список
-  const colorOptions = product.colors ? product.colors.split(/[,/]+/).map(c => c.trim()).filter(Boolean) : [];
-  const [selectedColor, setSelectedColor] = useState(colorOptions[0] || "Не указан");
+  // Обработка цветов
+  const colorOptions = product.colors 
+    ? product.colors.split(/[,/]+/).map(c => c.trim()).filter(Boolean) 
+    : [];
+  const [selectedColor, setSelectedColor] = useState(colorOptions[0] || "Стандарт");
 
-  // Логика количества (минимум одна коробка)
-  const step = product.pairs_per_box || 12;
-  const [totalPairs, setTotalPairs] = useState(step);
+  // ЛОГИКА: Минимум 6 пар, шаг +6 пар
+  const [totalPairs, setTotalPairs] = useState(6);
+
+  const openModal = (targetMode: "quick" | "cart") => {
+    setMode(targetMode);
+    setIsOpen(true);
+  };
 
   const handleAddToCart = () => {
     addItem(product, totalPairs, selectedColor);
@@ -76,18 +83,17 @@ export function ProductCard({ product }: ProductCardProps) {
         setIsOpen(false);
         setPhone("");
         setName("");
-        setTotalPairs(step);
         toast({
           title: "Заказ оформлен!",
           description: "Менеджер свяжется с вами в ближайшее время.",
         });
       } else {
-        throw new Error("Ошибка сервера");
+        throw new Error("Ошибка");
       }
     } catch (error) {
       toast({
         title: "Ошибка",
-        description: "Не удалось отправить заказ. Попробуйте еще раз.",
+        description: "Не удалось отправить заказ.",
         variant: "destructive",
       });
     } finally {
@@ -128,7 +134,7 @@ export function ProductCard({ product }: ProductCardProps) {
           {product.name}
         </h3>
 
-        {/* ПАРАМЕТРЫ В РАМКАХ */}
+        {/* ПАРАМЕТРЫ */}
         <div className="grid grid-cols-2 gap-2 mb-4">
           <div className="flex flex-col items-start p-2 rounded-xl border border-slate-100 bg-slate-50/50">
             <span className="text-[8px] font-black text-slate-400 uppercase mb-0.5 tracking-tighter">Размер:</span>
@@ -142,39 +148,48 @@ export function ProductCard({ product }: ProductCardProps) {
             <span className="text-[8px] font-black text-slate-400 uppercase mb-0.5 tracking-tighter">В коробе:</span>
             <div className="flex items-center gap-1">
               <Box size={10} className="text-blue-500" />
-              <span className="text-[10px] font-bold text-slate-700">{step} пар</span>
+              <span className="text-[10px] font-bold text-slate-700">{product.pairs_per_box || 12} пар</span>
             </div>
           </div>
         </div>
 
         <div className="mt-auto">
           <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-black text-blue-600 leading-none tracking-tighter">
+            <span className="text-2xl font-black text-blue-600 leading-none">
               {product.price}
             </span>
             <span className="text-[10px] font-bold text-blue-400 uppercase">сом / пара</span>
           </div>
-          <p className="text-[10px] text-slate-400 font-medium mt-1">
-            Цена за коробку: <span className="text-slate-500 font-bold">{product.price * step} сом</span>
-          </p>
         </div>
       </CardContent>
 
       <div className="p-4 pt-0 flex flex-col gap-2">
-        {/* КНОПКА БЫСТРОГО ЗАКАЗА */}
+        <Button 
+          onClick={() => openModal("quick")}
+          className="w-full bg-slate-900 hover:bg-black text-white rounded-xl h-11 text-[11px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all"
+        >
+          КУПИТЬ СЕЙЧАС
+        </Button>
+        
+        <Button 
+          variant="outline"
+          onClick={() => openModal("cart")}
+          className="w-full border-slate-100 hover:border-blue-100 hover:bg-blue-50 text-slate-500 hover:text-blue-600 rounded-xl h-10 text-[10px] font-bold uppercase transition-colors"
+        >
+          <ShoppingCart size={14} className="mr-2" />
+          В корзину
+        </Button>
+
+        {/* МОДАЛЬНОЕ ОКНО */}
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger asChild>
-            <Button className="w-full bg-slate-900 hover:bg-black text-white rounded-xl h-11 text-[11px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
-              КУПИТЬ СЕЙЧАС
-            </Button>
-          </DialogTrigger>
           <DialogContent className="rounded-[2.5rem] max-w-[95%] sm:max-w-[420px] p-6 border-none shadow-2xl">
             <DialogHeader>
-              <DialogTitle className="text-center font-black uppercase text-xl tracking-tighter">Быстрый заказ</DialogTitle>
+              <DialogTitle className="text-center font-black uppercase text-xl tracking-tighter">
+                {mode === "quick" ? "Быстрый заказ" : "Параметры"}
+              </DialogTitle>
             </DialogHeader>
             
-            <form onSubmit={handleQuickOrder} className="space-y-4 pt-4">
-              
+            <div className="space-y-4 pt-4">
               {/* ВЫБОР ЦВЕТА */}
               {colorOptions.length > 0 && (
                 <div className="space-y-1.5">
@@ -183,7 +198,7 @@ export function ProductCard({ product }: ProductCardProps) {
                     <SelectTrigger className="rounded-2xl h-12 border-slate-100 bg-slate-50/50">
                       <div className="flex items-center gap-2 font-bold text-sm">
                         <Palette size={14} className="text-blue-500" />
-                        <SelectValue placeholder="Выберите цвет" />
+                        <SelectValue />
                       </div>
                     </SelectTrigger>
                     <SelectContent className="rounded-2xl border-none shadow-xl">
@@ -197,65 +212,71 @@ export function ProductCard({ product }: ProductCardProps) {
                 </div>
               )}
 
-              {/* УПРАВЛЕНИЕ КОЛИЧЕСТВОМ */}
+              {/* СЧЕТЧИК ПАР С ШАГОМ 6 */}
               <div className="flex flex-col items-center gap-2 p-4 bg-blue-50/50 rounded-[2rem] border border-blue-100/50">
-                <Label className="text-[10px] font-black uppercase text-blue-400">Количество (коробами)</Label>
+                <Label className="text-[10px] font-black uppercase text-blue-400">Количество пар</Label>
                 <div className="flex items-center gap-8">
                   <Button 
                     type="button" variant="ghost" size="icon" 
                     className="h-10 w-10 rounded-full bg-white shadow-sm hover:bg-white active:scale-90 transition-all"
-                    onClick={() => setTotalPairs(Math.max(step, totalPairs - step))}
+                    onClick={() => setTotalPairs(Math.max(6, totalPairs - 6))}
                   >
                     <Minus size={18} className="text-blue-600" />
                   </Button>
                   <div className="text-center">
                     <span className="text-2xl font-black text-slate-900 leading-none">{totalPairs}</span>
-                    <p className="text-[9px] font-bold text-blue-500 uppercase tracking-widest">пары</p>
+                    <p className="text-[9px] font-bold text-blue-500 uppercase">пары</p>
                   </div>
                   <Button 
                     type="button" variant="ghost" size="icon" 
                     className="h-10 w-10 rounded-full bg-white shadow-sm hover:bg-white active:scale-90 transition-all"
-                    onClick={() => setTotalPairs(totalPairs + step)}
+                    onClick={() => setTotalPairs(totalPairs + 6)}
                   >
                     <Plus size={18} className="text-blue-600" />
                   </Button>
                 </div>
-                <p className="text-[10px] font-black text-blue-300 uppercase mt-1">Всего {totalPairs / step} кор.</p>
               </div>
 
-              {/* ДАННЫЕ КЛИЕНТА */}
-              <div className="space-y-2">
-                <Input required value={name} onChange={(e) => setName(e.target.value)} className="rounded-2xl h-12 border-slate-100 bg-slate-50/50 px-4" placeholder="Ваше имя" />
-                <Input required type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="rounded-2xl h-12 border-slate-100 bg-slate-50/50 px-4" placeholder="Ваш телефон" />
-              </div>
-
-              {/* ИТОГО И КНОПКА ОТПРАВКИ */}
-              <div className="bg-slate-900 p-5 rounded-[2rem] text-white shadow-xl shadow-slate-200">
-                <div className="flex justify-between items-center mb-3 px-1">
-                  <span className="text-[10px] font-black uppercase opacity-60 tracking-widest">К оплате:</span>
-                  <span className="text-2xl font-black">{(product.price * totalPairs).toLocaleString()} сом</span>
+              {/* ФОРМА БЫСТРОГО ЗАКАЗА */}
+              {mode === "quick" ? (
+                <form onSubmit={handleQuickOrder} className="space-y-4">
+                  <div className="space-y-2">
+                    <Input required value={name} onChange={(e) => setName(e.target.value)} className="rounded-2xl h-12 border-slate-100 bg-slate-50/50 px-4" placeholder="Ваше имя" />
+                    <Input required type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="rounded-2xl h-12 border-slate-100 bg-slate-50/50 px-4" placeholder="+996..." />
+                  </div>
+                  <div className="bg-slate-900 p-5 rounded-[2rem] text-white shadow-xl">
+                    <div className="flex justify-between items-center mb-3 px-1">
+                      <span className="text-[10px] font-black uppercase opacity-60 tracking-widest">К оплате:</span>
+                      <span className="text-2xl font-black">{(product.price * totalPairs).toLocaleString()} сом</span>
+                    </div>
+                    <Button 
+                      disabled={isSubmitting} 
+                      type="submit" 
+                      className="w-full bg-blue-600 hover:bg-blue-500 h-12 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-lg active:scale-95 transition-all"
+                    >
+                      {isSubmitting ? <Loader2 className="animate-spin" /> : "ПОДТВЕРДИТЬ ЗАКАЗ"}
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                /* КНОПКА КОРЗИНЫ */
+                <div className="bg-blue-600 p-5 rounded-[2rem] text-white shadow-xl">
+                  <div className="flex justify-between items-center mb-3 px-1 font-black">
+                    <span className="text-[10px] uppercase opacity-80">Итого:</span>
+                    <span className="text-2xl">{(product.price * totalPairs).toLocaleString()} сом</span>
+                  </div>
+                  <Button 
+                    onClick={handleAddToCart}
+                    className="w-full bg-white text-blue-600 hover:bg-white/90 h-12 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-lg active:scale-95 transition-all"
+                  >
+                    <Check size={18} className="mr-2" /> В КОРЗИНУ
+                  </Button>
                 </div>
-                <Button 
-                  disabled={isSubmitting} 
-                  type="submit" 
-                  className="w-full bg-blue-600 hover:bg-blue-500 h-12 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-lg active:scale-95 transition-all"
-                >
-                  {isSubmitting ? <Loader2 className="animate-spin" /> : "ПОДТВЕРДИТЬ ЗАКАЗ"}
-                </Button>
-              </div>
-            </form>
+              )}
+            </div>
           </DialogContent>
         </Dialog>
-        
-        <Button 
-          variant="outline"
-          onClick={handleAddToCart}
-          className="w-full border-slate-100 hover:border-blue-100 hover:bg-blue-50 text-slate-500 hover:text-blue-600 rounded-xl h-10 text-[10px] font-bold uppercase transition-colors"
-        >
-          <ShoppingCart size={14} className="mr-2" />
-          В корзину
-        </Button>
       </div>
     </Card>
   );
-    }
+}
