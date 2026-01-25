@@ -1,73 +1,200 @@
-import { Product } from "@/lib/products";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { Button } from "@/components/ui/button";
-import { useCart } from "@/lib/cart";
-import { Plus, Minus, Palette } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Trash2, X, ImagePlus, Loader2, Edit2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { useUpload } from "@/hooks/use-upload";
 
-export function ProductCard({ product }: { product: Product }) {
-  const { items, addItem, removeItem } = useCart();
-  const [activePhoto, setActivePhoto] = useState(product.main_photo);
+const productSchema = z.object({
+  name: z.string().min(2, "Минимум 2 символа"),
+  category: z.string().default("Обувь"),
+  price: z.coerce.number().min(1, "Цена обязательна"),
+  sizes: z.string().min(1, "Укажите размеры"),
+  colors: z.string().min(1, "Укажите цвета"),
+  status: z.string().default("В наличии"),
+  min_order_quantity: z.coerce.number().min(1),
+  pairs_per_box: z.coerce.number().min(1),
+  is_bestseller: z.boolean().optional(),
+  is_new: z.boolean().optional(),
+});
+
+export function AdminPanel({ products = [], onAddProduct, onUpdateProduct, onDeleteProduct }: any) {
+  const { toast } = useToast();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { uploadFile } = useUpload();
   
-  // Безопасный поиск товара в корзине
-  const cartItem = items.find((item) => item.productId === product.id);
-  const quantity = cartItem?.quantity || 0;
-  const step = product.min_order_quantity || 6;
-  const allPhotos = [product.main_photo, ...(product.additional_photos || [])].filter(Boolean);
+  const form = useForm<z.infer<typeof productSchema>>({
+    resolver: zodResolver(productSchema),
+    defaultValues: {
+      name: "", category: "Обувь", price: 0, sizes: "36-41", colors: "",
+      status: "В наличии", min_order_quantity: 6, pairs_per_box: 12, is_bestseller: false, is_new: false,
+    },
+  });
+
+  useEffect(() => {
+    if (editingId) {
+      const p = products.find((item: any) => item.id === editingId);
+      if (p) {
+        form.reset({ ...p, price: Number(p.price) });
+        setPreviews([p.main_photo, ...(p.additional_photos || [])].filter(Boolean));
+      }
+    }
+  }, [editingId, products]);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    
+    setIsUploading(true);
+    try {
+      const paths = [];
+      for (const f of files) {
+        const res = await uploadFile(f);
+        if (res?.objectPath) paths.push(res.objectPath);
+      }
+      setPreviews(prev => [...prev, ...paths]);
+    } catch (error) {
+      toast({ title: "Ошибка загрузки", variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  async function onSubmit(values: z.infer<typeof productSchema>) {
+    if (previews.length === 0) {
+      toast({ title: "Ошибка", description: "Нужно хотя бы одно фото", variant: "destructive" });
+      return;
+    }
+    
+    const data = { 
+      ...values, 
+      main_photo: previews[0], 
+      additional_photos: previews.slice(1) 
+    };
+
+    try {
+      if (editingId) {
+        await onUpdateProduct(editingId, data);
+        toast({ title: "Обновлено успешно" });
+      } else {
+        await onAddProduct(data);
+        toast({ title: "Товар добавлен" });
+      }
+      form.reset();
+      setPreviews([]);
+      setEditingId(null);
+    } catch (err) {
+      toast({ title: "Ошибка сохранения", variant: "destructive" });
+    }
+  }
 
   return (
-    <Card className="overflow-hidden flex flex-col h-full border border-slate-100 shadow-sm bg-white rounded-xl">
-      <div className="relative aspect-square bg-slate-50">
-        <img src={activePhoto} className="object-cover w-full h-full transition-all duration-300" alt={product.name} />
-        <div className="absolute top-2 left-2 flex flex-col gap-1">
-          {product.is_bestseller && <Badge className="bg-orange-500 border-none text-[8px] font-bold px-1.5 py-0.5">ХИТ</Badge>}
-          {product.is_new && <Badge className="bg-green-600 border-none text-[8px] font-bold px-1.5 py-0.5">NEW</Badge>}
+    <div className="max-w-4xl mx-auto p-4 space-y-8 bg-slate-50 min-h-screen">
+      <Card className="border-2 border-blue-100 shadow-xl">
+        <CardHeader className="bg-blue-600 text-white rounded-t-lg">
+          <CardTitle className="text-lg uppercase font-black italic">
+            {editingId ? "📝 Редактирование товара" : "🚀 Добавить новинку"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              {/* Секция фото */}
+              <div className="grid grid-cols-4 gap-3">
+                {previews.map((s, i) => (
+                  <div key={i} className="relative aspect-square border-2 border-slate-200 rounded-lg overflow-hidden group">
+                    <img src={s} className="w-full h-full object-cover" />
+                    <button 
+                      type="button" 
+                      onClick={() => setPreviews(p => p.filter((_, idx) => idx !== i))}
+                      className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                    >
+                      <X className="text-white w-6 h-6" />
+                    </button>
+                    {i === 0 && <span className="absolute bottom-0 w-full bg-blue-600 text-[8px] text-white text-center font-bold">ГЛАВНОЕ</span>}
+                  </div>
+                ))}
+                <button 
+                  type="button" 
+                  onClick={() => fileInputRef.current?.click()} 
+                  disabled={isUploading}
+                  className="aspect-square border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center bg-white hover:bg-slate-50 transition-colors"
+                >
+                  {isUploading ? <Loader2 className="animate-spin text-blue-600" /> : <><ImagePlus className="text-slate-400 mb-1" /> <span className="text-[10px] font-bold text-slate-400">ФОТО</span></>}
+                </button>
+              </div>
+              <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" multiple accept="image/*" />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="name" render={({ field }) => (
+                  <FormItem><FormLabel className="text-xs font-bold uppercase">Название модели</FormLabel><FormControl><Input placeholder="Напр: Кроссовки Nike Air" {...field} /></FormControl></FormItem>
+                )} />
+                <FormField control={form.control} name="colors" render={({ field }) => (
+                  <FormItem><FormLabel className="text-xs font-bold uppercase">Цвета в наличии</FormLabel><FormControl><Input placeholder="Черный, Белый, Синий" {...field} /></FormControl></FormItem>
+                )} />
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <FormField control={form.control} name="price" render={({ field }) => (
+                  <FormItem><FormLabel className="text-xs font-bold uppercase">Цена (сом)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>
+                )} />
+                <FormField control={form.control} name="sizes" render={({ field }) => (
+                  <FormItem><FormLabel className="text-xs font-bold uppercase">Размеры</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
+                )} />
+                <FormField control={form.control} name="min_order_quantity" render={({ field }) => (
+                  <FormItem><FormLabel className="text-xs font-bold uppercase">Мин. заказ</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>
+                )} />
+                <FormField control={form.control} name="pairs_per_box" render={({ field }) => (
+                  <FormItem><FormLabel className="text-xs font-bold uppercase">В коробке</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>
+                )} />
+              </div>
+
+              <div className="flex gap-4">
+                <Button type="submit" disabled={isUploading} className="flex-grow h-12 bg-blue-600 hover:bg-blue-700 font-black">
+                  {isUploading ? "ЗАГРУЗКА..." : editingId ? "ОБНОВИТЬ ТОВАР" : "ОПУБЛИКОВАТЬ"}
+                </Button>
+                {editingId && (
+                  <Button type="button" variant="outline" onClick={() => { setEditingId(null); form.reset(); setPreviews([]); }} className="h-12">ОТМЕНА</Button>
+                )}
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+
+      {/* Список товаров для управления */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest px-2">Управление товарами ({products.length})</h3>
+        <div className="grid gap-2">
+          {products.map((p: any) => (
+            <div key={p.id} className="flex items-center justify-between p-3 bg-white border rounded-xl shadow-sm hover:border-blue-200 transition-colors">
+              <div className="flex items-center gap-4">
+                <img src={p.main_photo} className="w-12 h-12 object-cover rounded-lg border" />
+                <div>
+                  <p className="font-bold text-sm text-slate-800">{p.name}</p>
+                  <p className="text-[10px] font-black text-blue-600 uppercase">{p.price} сом — {p.colors}</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button size="icon" variant="ghost" onClick={() => { setEditingId(p.id); window.scrollTo({top: 0, behavior: 'smooth'}); }} className="h-9 w-9 text-slate-400 hover:text-blue-600 hover:bg-blue-50">
+                  <Edit2 size={18} />
+                </Button>
+                <Button size="icon" variant="ghost" onClick={() => onDeleteProduct(p.id)} className="h-9 w-9 text-slate-400 hover:text-red-600 hover:bg-red-50">
+                  <Trash2 size={18} />
+                </Button>
+              </div>
+            </div>
+          ))}
         </div>
-        {allPhotos.length > 1 && (
-          <div className="absolute bottom-2 left-2 right-2 flex gap-1 overflow-x-auto no-scrollbar bg-white/50 p-1 rounded-lg">
-            {allPhotos.map((img, i) => (
-              <img 
-                key={i} 
-                src={img} 
-                onClick={() => setActivePhoto(img)} 
-                className={`w-8 h-8 rounded border-2 cursor-pointer object-cover ${activePhoto === img ? "border-blue-600" : "border-white"}`} 
-                alt="thumb"
-              />
-            ))}
-          </div>
-        )}
       </div>
-
-      <CardContent className="p-2.5 flex-grow space-y-2">
-        <div>
-          <h3 className="font-bold text-slate-800 text-[13px] leading-tight line-clamp-2 h-8">{product.name}</h3>
-          <div className="mt-1 flex items-center gap-1 bg-blue-50/50 p-1 rounded border border-blue-100">
-            <Palette className="w-3 h-3 text-blue-600" />
-            <span className="text-[9px] font-black text-blue-700 uppercase">Цвета: {product.colors}</span>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-1 text-[10px] border-y py-1.5">
-          <div className="flex flex-col"><span className="text-slate-400 font-bold uppercase">Размеры</span><span className="font-black">{product.sizes}</span></div>
-          <div className="flex flex-col border-l pl-2"><span className="text-slate-400 font-bold uppercase">В кор.</span><span className="font-black">{product.pairs_per_box} п.</span></div>
-        </div>
-      </CardContent>
-
-      <CardFooter className="p-2.5 pt-0 flex flex-col gap-2">
-        <div className="flex items-end gap-1">
-          <span className="text-lg font-black">{product.price}</span>
-          <span className="text-[9px] text-slate-500 font-bold mb-0.5">сом/п</span>
-        </div>
-        {quantity === 0 ? (
-          <Button className="w-full h-8 bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px]" onClick={() => addItem(product, step)}>В КОРЗИНУ</Button>
-        ) : (
-          <div className="flex items-center justify-between w-full bg-slate-100 p-0.5 rounded-lg border">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeItem(product.id, step)}><Minus size={12}/></Button>
-            <span className="text-[11px] font-black text-blue-700">{quantity} п.</span>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => addItem(product, step)}><Plus size={12}/></Button>
-          </div>
-        )}
-      </CardFooter>
-    </Card>
+    </div>
   );
-          }
+    }
