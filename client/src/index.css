@@ -28,7 +28,6 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  /* Стиль для иконки Каталога как у WhatsApp/Telegram */
   .icon-circle {
     display: flex;
     align-items: center;
@@ -37,14 +36,14 @@
     height: 42px;
     border-radius: 50%;
     background: #ffffff !important;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
     border: 1px solid #f0f0f0;
   }
 }
 
-/* --- ГЛОБАЛЬНЫЙ ФИКС ПРОЗРАЧНОСТИ --- */
+/* --- ТОТАЛЬНЫЙ ЗАПРЕТ ПРОЗРАЧНОСТИ --- */
 
-/* 1. ОСНОВНЫЕ ОКНА (Корзина, Быстрый заказ) */
+/* 1. Модальные окна */
 div[role="dialog"], 
 .sheet-content, 
 [data-radix-portal] [role="dialog"] {
@@ -56,47 +55,42 @@ div[role="dialog"],
     -webkit-backdrop-filter: none !important;
 }
 
-/* 2. ТЕКСТ ВНУТРИ ОКОН */
-[role="dialog"] *, .sheet-content * {
-    color: #000000 !important;
-}
-
-/* 3. ЖЕСТКИЙ ФИКС ДЛЯ УВЕДОМЛЕНИЙ (Toast / Sonner) */
-/* Мы обнуляем внутренние переменные библиотеки, которые делают её прозрачной */
-[data-sonner-toast], 
-[data-radix-toast-viewport] li,
-div[role="status"],
-.toast,
-[data-rich-colors="true"] {
-    --normal-bg: #ffffff !important;
-    --normal-border: #2563eb !important;
-    --bg: #ffffff !important;
+/* 2. УВЕДОМЛЕНИЯ (TOAST) — ПОЛНЫЙ ПЕРЕХВАТ */
+/* Этот селектор достанет уведомление, даже если оно спрятано глубоко */
+[role="status"], 
+[data-radix-toast-viewport] *,
+[data-sonner-toast],
+.sonner-toast,
+div[class*="toast"] {
+    background: #ffffff !important;
     background-color: #ffffff !important;
-    background: white !important;
+    --bg: #ffffff !important;
+    --normal-bg: #ffffff !important;
+    --toast-bg: #ffffff !important;
     color: #000000 !important;
     opacity: 1 !important;
     border: 2px solid #2563eb !important;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.2) !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
 }
 
-/* Текст внутри уведомления */
-[data-sonner-toast] *, 
-[data-radix-toast-viewport] * {
+/* Текст внутри уведомлений */
+[role="status"] *, 
+[data-sonner-toast] * {
     color: #000000 !important;
-    opacity: 1 !important;
+    background-color: transparent !important; /* Чтобы фон текста не перекрывал фон тоста */
 }
 
-/* 4. ОВЕРЛЕЙ (Затемнение фона) */
+/* 3. ОВЕРЛЕЙ (Затемнение) */
 div[data-state="open"].fixed.inset-0:not([role="dialog"]) {
     background-color: rgba(0, 0, 0, 0.8) !important;
     backdrop-filter: blur(4px) !important;
 }
 
-/* 5. ИНПУТЫ */
-[role="dialog"] input {
+/* 4. ФИКС ДЛЯ КНОПОК И ИНПУТОВ */
+[role="dialog"] input, 
+[role="dialog"] button:not(.bg-blue-600) {
     background-color: #ffffff !important;
     color: #000000 !important;
-    border: 1px solid #cccccc !important;
-  }
+}
