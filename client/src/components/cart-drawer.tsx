@@ -83,51 +83,53 @@ export function CartDrawer() {
           )}
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-md flex flex-col">
+      
+      {/* МЫ ИЗМЕНИЛИ ЭТУ СТРОКУ НИЖЕ, ДОБАВИВ bg-white и text-black */}
+      <SheetContent className="w-full sm:max-w-md flex flex-col bg-white text-black border-l border-gray-200 shadow-xl opacity-100">
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
+          <SheetTitle className="flex items-center gap-2 text-black">
             <ShoppingCart className="h-5 w-5" /> Корзина ({totalItems()} пар)
           </SheetTitle>
         </SheetHeader>
 
         {items.length === 0 ? (
-          <div className="flex-grow flex flex-col items-center justify-center space-y-4">
-            <div className="bg-muted p-6 rounded-full">
-              <ShoppingCart className="h-12 w-12 text-muted-foreground" />
+          <div className="flex-grow flex flex-col items-center justify-center space-y-4 bg-white">
+            <div className="bg-gray-100 p-6 rounded-full">
+              <ShoppingCart className="h-12 w-12 text-gray-400" />
             </div>
-            <p className="text-muted-foreground font-medium">Ваша корзина пуста</p>
+            <p className="text-gray-500 font-medium">Ваша корзина пуста</p>
           </div>
         ) : (
           <>
             <ScrollArea className="flex-grow pr-4 -mr-4 mt-6">
               <div className="space-y-4">
                 {items.map((item, index) => (
-                  <div key={`${item.id}-${item.selectedColor || index}`} className="flex gap-4">
-                    <div className="h-20 w-20 rounded-lg overflow-hidden border bg-muted shrink-0">
+                  <div key={`${item.id}-${item.selectedColor || index}`} className="flex gap-4 border-b pb-4 border-gray-100">
+                    <div className="h-20 w-20 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 shrink-0">
                       <img src={item.main_photo} alt={item.name} className="h-full w-full object-cover" />
                     </div>
                     <div className="flex-grow space-y-1">
-                      <h4 className="font-bold text-sm line-clamp-1">{item.name}</h4>
-                      <p className="text-xs text-muted-foreground">
+                      <h4 className="font-bold text-sm text-black line-clamp-1">{item.name}</h4>
+                      <p className="text-xs text-gray-500">
                         {item.category} • {item.price} сом/пара
                         {item.selectedColor && <span className="ml-1">• {item.selectedColor}</span>}
                       </p>
                       
                       <div className="flex items-center justify-between pt-2">
-                        <div className="flex items-center border rounded-md">
+                        <div className="flex items-center border border-gray-300 rounded-md bg-white">
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="h-7 w-7 rounded-none"
+                            className="h-7 w-7 rounded-none text-black hover:bg-gray-100"
                             onClick={() => updateQuantity(item.id, Math.max(item.min_order_quantity, item.quantity - 6), item.selectedColor)}
                           >
                             <Minus className="h-3 w-3" />
                           </Button>
-                          <span className="w-8 text-center text-xs font-bold">{item.quantity}</span>
+                          <span className="w-8 text-center text-xs font-bold text-black">{item.quantity}</span>
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="h-7 w-7 rounded-none"
+                            className="h-7 w-7 rounded-none text-black hover:bg-gray-100"
                             onClick={() => updateQuantity(item.id, item.quantity + 6, item.selectedColor)}
                           >
                             <Plus className="h-3 w-3" />
@@ -136,7 +138,7 @@ export function CartDrawer() {
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-7 w-7 text-destructive"
+                          className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
                           onClick={() => removeItem(item.id, item.selectedColor)}
                         >
                           <Trash2 className="h-3 w-3" />
@@ -148,55 +150,55 @@ export function CartDrawer() {
               </div>
             </ScrollArea>
 
-            <div className="space-y-4 pt-6">
-              <Separator />
+            <div className="space-y-4 pt-6 bg-white">
+              <Separator className="bg-gray-200" />
               <div className="space-y-1.5">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Товаров в корзине</span>
+                <div className="flex justify-between text-sm text-black">
+                  <span className="text-gray-500">Товаров в корзине</span>
                   <span>{items.length} поз.</span>
                 </div>
-                <div className="flex justify-between font-bold text-lg">
+                <div className="flex justify-between font-bold text-lg text-black">
                   <span>Итого к оплате</span>
                   <span className="text-primary">{totalPrice()} сом</span>
                 </div>
               </div>
 
-              <Separator />
+              <Separator className="bg-gray-200" />
               
               <div className="space-y-3">
-                <p className="text-sm font-semibold">Ваши контактные данные:</p>
+                <p className="text-sm font-semibold text-black">Ваши контактные данные:</p>
                 <div className="space-y-2">
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input 
                       placeholder="Ваше имя" 
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
-                      className="pl-10"
+                      className="pl-10 bg-white border-gray-300 text-black placeholder:text-gray-400"
                     />
                   </div>
                   <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input 
                       placeholder="+996..." 
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(e.target.value)}
-                      className="pl-10"
+                      className="pl-10 bg-white border-gray-300 text-black placeholder:text-gray-400"
                     />
                   </div>
                 </div>
               </div>
 
-              <SheetFooter className="flex flex-col gap-2">
+              <SheetFooter className="flex flex-col gap-2 pb-4">
                 <Button 
-                  className="w-full h-12 text-base" 
+                  className="w-full h-12 text-base font-bold bg-primary hover:bg-primary/90 text-white" 
                   onClick={handleCheckout}
                   disabled={isSubmitting}
                 >
                   <Send className="mr-2 h-5 w-5" /> 
                   {isSubmitting ? "Отправка..." : "Оформить заказ"}
                 </Button>
-                <p className="text-[10px] text-center text-muted-foreground">
+                <p className="text-[10px] text-center text-gray-400">
                   После оформления менеджер свяжется с вами для уточнения деталей доставки и оплаты.
                 </p>
               </SheetFooter>
