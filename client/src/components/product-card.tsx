@@ -2,7 +2,7 @@ import { Product } from "@/lib/products";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
-import { ShoppingCart, Ruler, Box, CloudSun, Loader2, Minus, Plus } from "lucide-react";
+import { ShoppingCart, Ruler, Box, CloudSun, Loader2, Minus, Plus, Palette } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +15,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ProductCardProps {
   product: Product;
@@ -28,16 +35,21 @@ export function ProductCard({ product }: ProductCardProps) {
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
   
-  // Состояние для количества пар (минимум одна коробка)
+  // Логика цветов: превращаем строку из базы в список
+  const colorOptions = product.colors ? product.colors.split(/[,/]+/).map(c => c.trim()).filter(Boolean) : [];
+  const [selectedColor, setSelectedColor] = useState(colorOptions[0] || "Не указан");
+
+  // Логика количества (минимум одна коробка)
   const step = product.pairs_per_box || 12;
   const [totalPairs, setTotalPairs] = useState(step);
 
   const handleAddToCart = () => {
-    addItem(product, totalPairs);
+    addItem(product, totalPairs, selectedColor);
     toast({
       title: "Добавлено в корзину",
-      description: `${product.name} — ${totalPairs} пар`,
+      description: `${product.name} (${selectedColor}) — ${totalPairs} пар`,
     });
+    setIsOpen(false);
   };
 
   const handleQuickOrder = async (e: React.FormEvent) => {
@@ -52,6 +64,7 @@ export function ProductCard({ product }: ProductCardProps) {
           productName: product.name,
           productSku: product.sku,
           quantity: totalPairs,
+          color: selectedColor,
           customerName: name,
           customerPhone: phone,
           totalPrice: product.price * totalPairs,
@@ -69,12 +82,12 @@ export function ProductCard({ product }: ProductCardProps) {
           description: "Менеджер свяжется с вами в ближайшее время.",
         });
       } else {
-        throw new Error("Ошибка");
+        throw new Error("Ошибка сервера");
       }
     } catch (error) {
       toast({
         title: "Ошибка",
-        description: "Не удалось отправить заказ.",
+        description: "Не удалось отправить заказ. Попробуйте еще раз.",
         variant: "destructive",
       });
     } finally {
@@ -85,16 +98,28 @@ export function ProductCard({ product }: ProductCardProps) {
   return (
     <Card className="group overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 rounded-[2rem] bg-white flex flex-col h-full">
       
-      {/* ФОТО */}
+      {/* ФОТО ТОВАРА */}
       <div className="relative aspect-square overflow-hidden bg-slate-50">
         <img
           src={product.main_photo}
           alt={product.name}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
+        
         <div className="absolute top-3 left-3 flex flex-col gap-1">
-          {product.is_new && <Badge className="bg-green-500 text-[8px] px-2 py-0.5 rounded-lg border-none text-white font-black">NEW</Badge>}
-          {product.is_bestseller && <Badge className="bg-orange-500 text-[8px] px-2 py-0.5 rounded-lg border-none text-white font-black">HIT</Badge>}
+          {product.is_new && (
+            <Badge className="bg-green-500 text-[8px] px-2 py-0.5 rounded-lg border-none text-white font-black">NEW</Badge>
+          )}
+          {product.is_bestseller && (
+            <Badge className="bg-orange-500 text-[8px] px-2 py-0.5 rounded-lg border-none text-white font-black">HIT</Badge>
+          )}
+        </div>
+
+        <div className="absolute bottom-3 left-3">
+          <Badge className="bg-white/90 backdrop-blur-sm text-slate-900 border-none px-2 py-1 rounded-lg text-[9px] font-bold flex items-center gap-1 shadow-sm">
+            <CloudSun size={10} className="text-blue-500" />
+            {(product.season || "ДЕМИСЕЗОН").toUpperCase()}
+          </Badge>
         </div>
       </div>
 
@@ -103,93 +128,134 @@ export function ProductCard({ product }: ProductCardProps) {
           {product.name}
         </h3>
 
-        {/* ПАРАМЕТРЫ */}
+        {/* ПАРАМЕТРЫ В РАМКАХ */}
         <div className="grid grid-cols-2 gap-2 mb-4">
           <div className="flex flex-col items-start p-2 rounded-xl border border-slate-100 bg-slate-50/50">
             <span className="text-[8px] font-black text-slate-400 uppercase mb-0.5 tracking-tighter">Размер:</span>
-            <div className="flex items-center gap-1 text-[10px] font-bold text-slate-700">
-              <Ruler size={10} className="text-blue-500" /> {product.sizes}
+            <div className="flex items-center gap-1">
+              <Ruler size={10} className="text-blue-500" />
+              <span className="text-[10px] font-bold text-slate-700">{product.sizes}</span>
             </div>
           </div>
+          
           <div className="flex flex-col items-start p-2 rounded-xl border border-slate-100 bg-slate-50/50">
             <span className="text-[8px] font-black text-slate-400 uppercase mb-0.5 tracking-tighter">В коробе:</span>
-            <div className="flex items-center gap-1 text-[10px] font-bold text-slate-700">
-              <Box size={10} className="text-blue-500" /> {step} пар
+            <div className="flex items-center gap-1">
+              <Box size={10} className="text-blue-500" />
+              <span className="text-[10px] font-bold text-slate-700">{step} пар</span>
             </div>
           </div>
         </div>
 
         <div className="mt-auto">
           <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-black text-blue-600 leading-none">{product.price}</span>
+            <span className="text-2xl font-black text-blue-600 leading-none tracking-tighter">
+              {product.price}
+            </span>
             <span className="text-[10px] font-bold text-blue-400 uppercase">сом / пара</span>
           </div>
+          <p className="text-[10px] text-slate-400 font-medium mt-1">
+            Цена за коробку: <span className="text-slate-500 font-bold">{product.price * step} сом</span>
+          </p>
         </div>
       </CardContent>
 
       <div className="p-4 pt-0 flex flex-col gap-2">
+        {/* КНОПКА БЫСТРОГО ЗАКАЗА */}
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger asChild>
-            <Button className="w-full bg-slate-900 hover:bg-black text-white rounded-xl h-11 text-[11px] font-black uppercase tracking-widest active:scale-95 transition-all">
+            <Button className="w-full bg-slate-900 hover:bg-black text-white rounded-xl h-11 text-[11px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
               КУПИТЬ СЕЙЧАС
             </Button>
           </DialogTrigger>
-          <DialogContent className="rounded-[2rem] max-w-[95%] sm:max-w-[400px]">
+          <DialogContent className="rounded-[2.5rem] max-w-[95%] sm:max-w-[420px] p-6 border-none shadow-2xl">
             <DialogHeader>
-              <DialogTitle className="text-center font-black uppercase">Быстрый заказ</DialogTitle>
+              <DialogTitle className="text-center font-black uppercase text-xl tracking-tighter">Быстрый заказ</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleQuickOrder} className="space-y-4 pt-2">
+            
+            <form onSubmit={handleQuickOrder} className="space-y-4 pt-4">
               
-              {/* ВЫБОР КОЛИЧЕСТВА */}
-              <div className="flex flex-col items-center gap-2 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <Label className="text-[10px] font-black uppercase text-slate-400">Количество пар</Label>
-                <div className="flex items-center gap-6">
+              {/* ВЫБОР ЦВЕТА */}
+              {colorOptions.length > 0 && (
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Цвет модели</Label>
+                  <Select value={selectedColor} onValueChange={setSelectedColor}>
+                    <SelectTrigger className="rounded-2xl h-12 border-slate-100 bg-slate-50/50">
+                      <div className="flex items-center gap-2 font-bold text-sm">
+                        <Palette size={14} className="text-blue-500" />
+                        <SelectValue placeholder="Выберите цвет" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent className="rounded-2xl border-none shadow-xl">
+                      {colorOptions.map((color) => (
+                        <SelectItem key={color} value={color} className="font-bold uppercase text-xs">
+                          {color}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* УПРАВЛЕНИЕ КОЛИЧЕСТВОМ */}
+              <div className="flex flex-col items-center gap-2 p-4 bg-blue-50/50 rounded-[2rem] border border-blue-100/50">
+                <Label className="text-[10px] font-black uppercase text-blue-400">Количество (коробами)</Label>
+                <div className="flex items-center gap-8">
                   <Button 
-                    type="button" variant="outline" size="icon" className="rounded-full h-8 w-8"
+                    type="button" variant="ghost" size="icon" 
+                    className="h-10 w-10 rounded-full bg-white shadow-sm hover:bg-white active:scale-90 transition-all"
                     onClick={() => setTotalPairs(Math.max(step, totalPairs - step))}
                   >
-                    <Minus size={14} />
+                    <Minus size={18} className="text-blue-600" />
                   </Button>
-                  <span className="text-xl font-black text-slate-900">{totalPairs}</span>
+                  <div className="text-center">
+                    <span className="text-2xl font-black text-slate-900 leading-none">{totalPairs}</span>
+                    <p className="text-[9px] font-bold text-blue-500 uppercase tracking-widest">пары</p>
+                  </div>
                   <Button 
-                    type="button" variant="outline" size="icon" className="rounded-full h-8 w-8"
+                    type="button" variant="ghost" size="icon" 
+                    className="h-10 w-10 rounded-full bg-white shadow-sm hover:bg-white active:scale-90 transition-all"
                     onClick={() => setTotalPairs(totalPairs + step)}
                   >
-                    <Plus size={14} />
+                    <Plus size={18} className="text-blue-600" />
                   </Button>
                 </div>
-                <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">
-                  Это {totalPairs / step} кор.
-                </p>
+                <p className="text-[10px] font-black text-blue-300 uppercase mt-1">Всего {totalPairs / step} кор.</p>
               </div>
 
+              {/* ДАННЫЕ КЛИЕНТА */}
               <div className="space-y-2">
-                <Input required value={name} onChange={(e) => setName(e.target.value)} className="rounded-xl h-12" placeholder="Ваше имя" />
-                <Input required type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="rounded-xl h-12" placeholder="Ваш телефон" />
+                <Input required value={name} onChange={(e) => setName(e.target.value)} className="rounded-2xl h-12 border-slate-100 bg-slate-50/50 px-4" placeholder="Ваше имя" />
+                <Input required type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="rounded-2xl h-12 border-slate-100 bg-slate-50/50 px-4" placeholder="Ваш телефон" />
               </div>
 
-              <div className="bg-blue-600 p-4 rounded-xl text-white shadow-lg shadow-blue-100">
-                <div className="flex justify-between items-center font-black">
-                  <span className="text-[10px] uppercase opacity-80">Итого:</span>
-                  <span className="text-xl">{product.price * totalPairs} СОМ</span>
+              {/* ИТОГО И КНОПКА ОТПРАВКИ */}
+              <div className="bg-slate-900 p-5 rounded-[2rem] text-white shadow-xl shadow-slate-200">
+                <div className="flex justify-between items-center mb-3 px-1">
+                  <span className="text-[10px] font-black uppercase opacity-60 tracking-widest">К оплате:</span>
+                  <span className="text-2xl font-black">{(product.price * totalPairs).toLocaleString()} сом</span>
                 </div>
+                <Button 
+                  disabled={isSubmitting} 
+                  type="submit" 
+                  className="w-full bg-blue-600 hover:bg-blue-500 h-12 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-lg active:scale-95 transition-all"
+                >
+                  {isSubmitting ? <Loader2 className="animate-spin" /> : "ПОДТВЕРДИТЬ ЗАКАЗ"}
+                </Button>
               </div>
-
-              <Button disabled={isSubmitting} type="submit" className="w-full bg-slate-900 hover:bg-black h-14 rounded-xl font-black uppercase tracking-widest">
-                {isSubmitting ? <Loader2 className="animate-spin" /> : "ПОДТВЕРДИТЬ"}
-              </Button>
             </form>
           </DialogContent>
         </Dialog>
         
         <Button 
-          variant="outline" 
+          variant="outline"
           onClick={handleAddToCart}
-          className="w-full border-slate-100 text-slate-500 rounded-xl h-10 text-[10px] font-bold uppercase"
+          className="w-full border-slate-100 hover:border-blue-100 hover:bg-blue-50 text-slate-500 hover:text-blue-600 rounded-xl h-10 text-[10px] font-bold uppercase transition-colors"
         >
-          <ShoppingCart size={14} className="mr-2" /> В корзину
+          <ShoppingCart size={14} className="mr-2" />
+          В корзину
         </Button>
       </div>
     </Card>
   );
-  }
+    }
