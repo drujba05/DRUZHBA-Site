@@ -28,3 +28,49 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   }
 }
+
+/* --- МОИ ИСПРАВЛЕНИЯ ДЛЯ МОБИЛЬНОЙ ВЕРСИИ --- */
+
+/* 1. Делаем ВСЕ всплывающие окна (корзину, быстрый просмотр) белыми */
+div[role="dialog"], 
+[data-state="open"],
+.sheet-content {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    opacity: 1 !important;
+    box-shadow: 0 0 25px rgba(0,0,0,0.3) !important;
+}
+
+/* 2. Делаем уведомления (Toast) "Товар добавлен" белыми и жирными */
+ol[dir="ltr"] li,
+div[role="status"] {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border: 2px solid #2563eb !important; /* Синяя рамка */
+    opacity: 1 !important;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2) !important;
+}
+
+/* 3. Исправляем текст внутри уведомлений, чтобы он не был белым на белом */
+[role="status"] div, 
+[role="status"] p,
+[role="status"] h1,
+[role="status"] h2 {
+    color: #000000 !important;
+}
+
+/* 4. Затемнение экрана под окном (делаем его очень темным) */
+div[data-state="open"] + div {
+    background-color: rgba(0, 0, 0, 0.85) !important;
+    backdrop-filter: blur(4px) !important;
+}
+
+/* 5. Фикс для кнопок внутри белых окон */
+div[role="dialog"] button {
+    opacity: 1 !important;
+}
+
+/* 6. Чтобы текст в корзине точно был черным */
+.text-muted-foreground {
+    color: #4b5563 !important; /* Темно-серый вместо прозрачного */
+}
