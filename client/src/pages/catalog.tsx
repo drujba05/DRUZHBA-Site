@@ -1,174 +1,113 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link } from "wouter";
 import { useProducts } from "@/lib/products";
 import { ProductCard } from "@/components/product-card";
 import { CartDrawer } from "@/components/cart-drawer";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from "@/components/ui/dropdown-menu";
-import { ArrowLeft, Snowflake, Sun, SlidersHorizontal, Users, Sparkles, Flame, Check } from "lucide-react";
-
-type SortOption = "default" | "new_first" | "popular_first";
-type GenderFilter = "Все" | "Женские" | "Мужские" | "Детские";
+import { ArrowLeft, MapPin, Phone, Clock, MessageCircle, Star, ShieldCheck } from "lucide-react";
 
 export default function Catalog() {
   const { products } = useProducts();
-  const [seasonFilter, setSeasonFilter] = useState<"Зима" | "Лето" | null>(null);
-  const [genderFilter, setGenderFilter] = useState<GenderFilter>("Все");
-  const [showNewOnly, setShowNewOnly] = useState(false);
-  const [sortOption, setSortOption] = useState<SortOption>("default");
-
-  const filteredProducts = products
-    .filter(p => {
-      if (seasonFilter && (p.season || "Все сезоны") !== seasonFilter && (p.season || "Все сезоны") !== "Все сезоны") {
-        return false;
-      }
-      if (genderFilter !== "Все" && (p.gender || "Универсальные") !== genderFilter && (p.gender || "Универсальные") !== "Универсальные") {
-        return false;
-      }
-      if (showNewOnly && !p.is_new) {
-        return false;
-      }
-      return true;
-    })
-    .sort((a, b) => {
-      if (sortOption === "new_first") {
-        if (a.is_new && !b.is_new) return -1;
-        if (!a.is_new && b.is_new) return 1;
-        return 0;
-      }
-      if (sortOption === "popular_first") {
-        if (a.is_bestseller && !b.is_bestseller) return -1;
-        if (!a.is_bestseller && b.is_bestseller) return 1;
-        return 0;
-      }
-      const aScore = (a.is_bestseller ? 2 : 0) + (a.is_new ? 1 : 0);
-      const bScore = (b.is_bestseller ? 2 : 0) + (b.is_new ? 1 : 0);
-      return bScore - aScore;
-    });
-
 
   return (
-    <div className="min-h-screen bg-background">
-      <nav className="sticky top-0 z-50 backdrop-blur-md" style={{ backgroundColor: 'rgba(88, 28, 135, 0.97)', borderBottom: '1px solid rgba(126, 34, 206, 0.4)' }}>
-        <div className="container mx-auto px-4 py-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Link href="/" className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors flex items-center text-sm font-medium shadow-md">
-                <ArrowLeft className="h-4 w-4 mr-1" /> На главную
-              </Link>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium" style={{ color: '#ffffff' }}>{filteredProducts.length} шт</span>
-              <CartDrawer />
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2 mt-2">
-            <Button
-              variant={seasonFilter === "Зима" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSeasonFilter(seasonFilter === "Зима" ? null : "Зима")}
-              className={`h-8 px-3 text-xs ${seasonFilter === "Зима" ? "bg-blue-600 hover:bg-blue-700" : "bg-white/10 border-white/20 text-white hover:bg-white/20"}`}
-              data-testid="button-season-winter"
-            >
-              <Snowflake className="h-3.5 w-3.5 mr-1" /> Зима
-            </Button>
-            <Button
-              variant={seasonFilter === "Лето" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSeasonFilter(seasonFilter === "Лето" ? null : "Лето")}
-              className={`h-8 px-3 text-xs ${seasonFilter === "Лето" ? "bg-orange-500 hover:bg-orange-600" : "bg-white/10 border-white/20 text-white hover:bg-white/20"}`}
-              data-testid="button-season-summer"
-            >
-              <Sun className="h-3.5 w-3.5 mr-1" /> Лето
-            </Button>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={`h-8 px-3 text-xs ${genderFilter !== "Все" ? "bg-purple-600 hover:bg-purple-700 border-purple-600" : "bg-white/10 border-white/20 text-white hover:bg-white/20"}`}
-                  data-testid="button-gender-dropdown"
-                >
-                  <Users className="h-3.5 w-3.5 mr-1" /> 
-                  {genderFilter === "Все" ? "Пол" : genderFilter}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuItem onClick={() => setGenderFilter("Все")} data-testid="menu-gender-all">
-                  {genderFilter === "Все" && <Check className="h-4 w-4 mr-2" />}
-                  <span className={genderFilter !== "Все" ? "ml-6" : ""}>Все</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setGenderFilter("Женские")} data-testid="menu-gender-women">
-                  {genderFilter === "Женские" && <Check className="h-4 w-4 mr-2" />}
-                  <span className={genderFilter !== "Женские" ? "ml-6" : ""}>Женские</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setGenderFilter("Мужские")} data-testid="menu-gender-men">
-                  {genderFilter === "Мужские" && <Check className="h-4 w-4 mr-2" />}
-                  <span className={genderFilter !== "Мужские" ? "ml-6" : ""}>Мужские</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setGenderFilter("Детские")} data-testid="menu-gender-kids">
-                  {genderFilter === "Детские" && <Check className="h-4 w-4 mr-2" />}
-                  <span className={genderFilter !== "Детские" ? "ml-6" : ""}>Детские</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={`h-8 px-3 text-xs ${showNewOnly || sortOption !== "default" ? "bg-green-600 hover:bg-green-700 border-green-600" : "bg-white/10 border-white/20 text-white hover:bg-white/20"}`}
-                  data-testid="button-filter-dropdown"
-                >
-                  <SlidersHorizontal className="h-3.5 w-3.5 mr-1" /> Фильтры
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuLabel className="text-xs text-muted-foreground">Показать</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => setShowNewOnly(!showNewOnly)} data-testid="menu-filter-new">
-                  {showNewOnly && <Check className="h-4 w-4 mr-2" />}
-                  <Sparkles className={`h-4 w-4 mr-2 text-green-500 ${!showNewOnly ? "ml-6" : ""}`} />
-                  Только новинки
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs text-muted-foreground">Сортировка</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => setSortOption("default")} data-testid="menu-sort-default">
-                  {sortOption === "default" && <Check className="h-4 w-4 mr-2" />}
-                  <span className={sortOption !== "default" ? "ml-6" : ""}>По умолчанию</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSortOption("new_first")} data-testid="menu-sort-new">
-                  {sortOption === "new_first" && <Check className="h-4 w-4 mr-2" />}
-                  <Sparkles className={`h-4 w-4 mr-2 text-green-500 ${sortOption !== "new_first" ? "ml-6" : ""}`} />
-                  Сначала новые
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSortOption("popular_first")} data-testid="menu-sort-popular">
-                  {sortOption === "popular_first" && <Check className="h-4 w-4 mr-2" />}
-                  <Flame className={`h-4 w-4 mr-2 text-orange-500 ${sortOption !== "popular_first" ? "ml-6" : ""}`} />
-                  Сначала популярные
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Навигация */}
+      <nav className="nav-custom shadow-lg">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+          <Link href="/" className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg flex items-center text-sm transition-all border border-white/20">
+            <ArrowLeft className="h-4 w-4 mr-2" /> На главную
+          </Link>
+          <CartDrawer />
         </div>
       </nav>
 
-      <main className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {filteredProducts.map((product) => (
+      {/* Основной каталог */}
+      <main className="container mx-auto px-4 py-8 flex-grow">
+        <div className="flex items-center gap-3 mb-8 border-l-4 border-blue-600 pl-4">
+          <h1 className="text-2xl font-bold uppercase tracking-tight text-slate-900">
+            Каталог продукции
+          </h1>
+        </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+          {products.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
       </main>
+
+      {/* Секция Контакты и О Компании */}
+      <footer className="bg-slate-900 text-slate-300 py-16 mt-12 border-t border-white/5">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            
+            {/* Описание */}
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-white uppercase tracking-wider">DRUZHBAA</h2>
+              <p className="text-slate-400 leading-relaxed">
+                Ваш надежный партнер на рынке «Дордой». Мы предлагаем широкий ассортимент качественной одежды по доступным ценам. Работаем напрямую, гарантируя лучшее предложение.
+              </p>
+              <div className="flex gap-3">
+                <div className="bg-slate-800 p-2 rounded border border-slate-700 flex items-center gap-2">
+                  <Star className="text-yellow-500 h-4 w-4" />
+                  <span className="text-[10px] font-bold uppercase">Качество</span>
+                </div>
+                <div className="bg-slate-800 p-2 rounded border border-slate-700 flex items-center gap-2">
+                  <ShieldCheck className="text-green-500 h-4 w-4" />
+                  <span className="text-[10px] font-bold uppercase">Надежность</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Контакты */}
+            <div className="space-y-6">
+              <h3 className="text-white font-bold uppercase text-sm tracking-widest border-b border-white/10 pb-2">Контакты</h3>
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="bg-blue-600/20 p-2 rounded-lg">
+                    <Phone className="h-5 w-5 text-blue-400" />
+                  </div>
+                  <a href="tel:+996557650131" className="hover:text-blue-400 transition-colors">+996 557 650 131</a>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="bg-blue-600/20 p-2 rounded-lg">
+                    <MessageCircle className="h-5 w-5 text-blue-400" />
+                  </div>
+                  <a href="https://t.me/DRUZHBAA_Bot" target="_blank" className="hover:text-blue-400 transition-colors">Telegram: @DRUZHBAA_Bot</a>
+                </div>
+                <div className="flex items-start gap-4">
+                  <div className="bg-blue-600/20 p-2 rounded-lg">
+                    <MapPin className="h-5 w-5 text-blue-400" />
+                  </div>
+                  <p className="text-sm">Рынок "Дордой", Оберон Форт,<br />30 проход, 2 контейнер</p>
+                </div>
+              </div>
+            </div>
+
+            {/* График работы */}
+            <div className="space-y-6">
+              <h3 className="text-white font-bold uppercase text-sm tracking-widest border-b border-white/10 pb-2">График работы</h3>
+              <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
+                <div className="flex items-center gap-4 mb-4">
+                  <Clock className="h-5 w-5 text-blue-400" />
+                  <span className="text-white font-medium">08:00 – 17:00</span>
+                </div>
+                <ul className="text-sm space-y-2 text-slate-400">
+                  <li className="flex justify-between"><span>Пн – Чт:</span> <span className="text-white">Работаем</span></li>
+                  <li className="flex justify-between border-b border-white/5 pb-2"><span>Пятница:</span> <span className="text-red-400 font-bold uppercase text-[10px]">Выходной</span></li>
+                  <li className="flex justify-between"><span>Сб – Вс:</span> <span className="text-white">Работаем</span></li>
+                </ul>
+              </div>
+            </div>
+
+          </div>
+          
+          <div className="mt-16 pt-8 border-t border-white/5 text-center">
+            <p className="text-[10px] opacity-30 uppercase tracking-[0.2em]">
+              © 2026 DRUZHBAA • Дордой • Все права защищены
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
