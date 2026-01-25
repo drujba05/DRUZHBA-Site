@@ -7,10 +7,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/lib/cart";
-import { ChevronLeft, ChevronRight, X, ZoomIn, Flame, Sparkles, ShoppingCart } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, ZoomIn, Flame, Sparkles } from "lucide-react";
 
 interface ProductCardProps {
   product: Product;
@@ -27,16 +27,7 @@ export function ProductCard({ product }: ProductCardProps) {
   
   const colorOptions = product.colors.split(/[,،;\/]+/).map(c => c.trim()).filter(Boolean);
   const [selectedColor, setSelectedColor] = useState(colorOptions[0] || "");
-
   const allPhotos = [product.main_photo, ...(product.additional_photos || [])].filter(Boolean);
-
-  const nextImage = () => {
-    setCurrentImageIndex((prev) => (prev + 1) % allPhotos.length);
-  };
-
-  const prevImage = () => {
-    setCurrentImageIndex((prev) => (prev - 1 + allPhotos.length) % allPhotos.length);
-  };
 
   const handleAddToCart = () => {
     if (colorOptions.length > 1 && !cartDialogOpen) {
@@ -45,8 +36,8 @@ export function ProductCard({ product }: ProductCardProps) {
     }
     addItem(product, product.min_order_quantity, selectedColor);
     toast({
-      title: "Добавлено в корзину",
-      description: `${product.name}${selectedColor ? ` (${selectedColor})` : ""} — +${product.min_order_quantity} пар`,
+      title: "Добавлено",
+      description: `${product.name} — ${product.min_order_quantity} пар`,
     });
     setCartDialogOpen(false);
   };
@@ -54,142 +45,80 @@ export function ProductCard({ product }: ProductCardProps) {
   const handleBuy = async (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
-    const customerName = formData.get("name") as string;
-    const customerPhone = formData.get("phone") as string;
-
     try {
       const response = await fetch("/api/orders/quick", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           productName: product.name,
-          productSku: product.sku,
           quantity,
           selectedColor,
-          customerName,
-          customerPhone,
+          customerName: formData.get("name"),
+          customerPhone: formData.get("phone"),
           totalPrice: product.price * quantity,
-          productPhoto: product.main_photo,
         }),
       });
-
       if (response.ok) {
         setOrderOpen(false);
-        toast({
-          title: "Заказ оформлен!",
-          description: "Менеджер свяжется с вами в ближайшее время.",
-        });
+        toast({ title: "Заказ оформлен!" });
       }
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "В наличии": return "bg-green-500";
-      case "Нет в наличии": return "bg-red-500";
-      default: return "bg-yellow-500";
-    }
+    } catch (e) { console.error(e); }
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} viewport={{ once: true }}>
-      <Card className="h-full flex flex-col overflow-hidden shadow-md border-0 bg-white">
-        <div className="relative aspect-[4/3] overflow-hidden bg-gray-100 cursor-pointer" onClick={() => setImageViewerOpen(true)}>
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+      <Card className="h-full flex flex-col overflow-hidden shadow-sm border-gray-200 bg-white">
+        {/* Фото товара */}
+        <div className="relative aspect-square overflow-hidden bg-gray-50 cursor-pointer" onClick={() => setImageViewerOpen(true)}>
           <img src={product.main_photo} alt={product.name} className="w-full h-full object-cover" />
-          <div className="absolute bottom-2 left-2 bg-black/50 text-white rounded-full p-1.5"><ZoomIn className="h-4 w-4" /></div>
+          <div className="absolute bottom-1 right-1 bg-black/40 text-white p-1 rounded-full"><ZoomIn className="h-3 w-3" /></div>
         </div>
 
-        {/* ОСНОВНОЕ ОКНО ТОВАРА (ДИАЛОГ ПОСЛЕ НАЖАТИЯ КУПИТЬ) */}
-        <Dialog open={orderOpen} onOpenChange={setOrderOpen}>
-          <DialogContent className="w-[95%] max-w-[425px] rounded-lg bg-white p-6 text-black border shadow-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-black">{product.name}</DialogTitle>
-              <DialogDescription className="text-gray-600">Арт: {product.sku}</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleBuy} className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label className="text-black font-bold">Количество пар</Label>
-                <div className="flex items-center justify-center gap-4 bg-gray-50 p-2 rounded-lg border">
-                  <Button type="button" variant="outline" onClick={() => setQuantity(Math.max(6, quantity - 6))}>-</Button>
-                  <span className="text-2xl font-bold text-black">{quantity}</span>
-                  <Button type="button" variant="outline" onClick={() => setQuantity(quantity + 6)}>+</Button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-black font-bold">Ваше имя</Label>
-                <Input name="name" placeholder="Имя" className="bg-white text-black border-gray-300" required />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-black font-bold">Телефон</Label>
-                <Input name="phone" placeholder="+996..." className="bg-white text-black border-gray-300" required />
-              </div>
-              <Button type="submit" className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg">
-                ПОДТВЕРДИТЬ ЗАКАЗ
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        {/* Выбор цвета */}
-        <Dialog open={cartDialogOpen} onOpenChange={setCartDialogOpen}>
-          <DialogContent className="bg-white text-black rounded-lg">
-            <DialogHeader><DialogTitle>Выберите цвет</DialogTitle></DialogHeader>
-            <Select value={selectedColor} onValueChange={setSelectedColor}>
-              <SelectTrigger className="bg-white text-black border-gray-300">
-                <SelectValue placeholder="Цвет" />
-              </SelectTrigger>
-              <SelectContent className="bg-white text-black">
-                {colorOptions.map((color) => <SelectItem key={color} value={color}>{color}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Button onClick={handleAddToCart} className="w-full bg-blue-600 text-white">Добавить</Button>
-          </DialogContent>
-        </Dialog>
-
-        <CardHeader className="p-3">
-          <div className="flex gap-1 mb-1">
-            <Badge className={`${getStatusColor(product.status)} text-white`}>{product.status}</Badge>
-          </div>
-          <CardTitle className="text-sm font-bold text-black line-clamp-2">{product.name}</CardTitle>
-          <div className="text-lg font-black text-blue-700">{product.price} сом/пара</div>
+        <CardHeader className="p-2 pb-0">
+          <Badge className="w-fit text-[9px] px-1 py-0 mb-1 bg-green-600 text-white border-0">{product.status}</Badge>
+          <CardTitle className="text-[13px] font-bold line-clamp-1 text-black">{product.name}</CardTitle>
+          <div className="text-blue-700 font-extrabold text-[15px]">{product.price} сом/пара</div>
         </CardHeader>
 
-        <CardContent className="p-3 pt-0 flex-grow space-y-2">
-          <div className="grid grid-cols-2 gap-2">
-             <div className="bg-gray-50 border p-2 rounded text-center">
-                <p className="text-[10px] text-gray-500">Размеры</p>
-                <p className="font-bold text-black">{product.sizes}</p>
-             </div>
-             <div className="bg-gray-50 border p-2 rounded text-center">
-                <p className="text-[10px] text-gray-500">Мин. заказ</p>
-                <p className="font-bold text-black">{product.min_order_quantity}п.</p>
-             </div>
+        <CardContent className="p-2 pt-1 flex-grow space-y-1.5">
+          {/* Блок размеров и мин заказа - СДЕЛАЛ МЕНЬШЕ ШРИФТ */}
+          <div className="grid grid-cols-2 gap-1">
+            <div className="border border-gray-200 rounded p-1 bg-gray-50 flex flex-col items-center justify-center">
+              <span className="text-[8px] uppercase text-gray-500 font-bold">Размеры</span>
+              <span className="text-[10px] font-black text-center leading-tight text-gray-800">{product.sizes}</span>
+            </div>
+            <div className="border border-gray-200 rounded p-1 bg-gray-50 flex flex-col items-center justify-center">
+              <span className="text-[8px] uppercase text-gray-500 font-bold">Мин. заказ</span>
+              <span className="text-[11px] font-black text-gray-800">{product.min_order_quantity}п.</span>
+            </div>
           </div>
         </CardContent>
 
-        <CardFooter className="p-3 grid grid-cols-2 gap-2">
-          <Button variant="outline" className="border-blue-600 text-blue-600 font-bold" onClick={handleAddToCart}>
-            В корзину
-          </Button>
-          <Button className="bg-blue-600 text-white font-bold" onClick={() => setOrderOpen(true)}>
-            КУПИТЬ
-          </Button>
+        <CardFooter className="p-2 pt-0 grid grid-cols-2 gap-1">
+          <Button variant="outline" className="h-8 text-[11px] border-blue-600 text-blue-600 px-1" onClick={handleAddToCart}>Корзина</Button>
+          <Button className="h-8 text-[11px] bg-blue-600 text-white px-1" onClick={() => setOrderOpen(true)}>КУПИТЬ</Button>
         </CardFooter>
+
+        {/* ОКНО ПОКУПКИ - ФИКС ПРОЗРАЧНОСТИ */}
+        <Dialog open={orderOpen} onOpenChange={setOrderOpen}>
+          <DialogContent className="fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] w-[90%] max-w-[350px] bg-white p-5 rounded-xl border shadow-2xl z-[100] text-black block">
+            <DialogHeader className="mb-2">
+              <DialogTitle className="text-lg font-bold text-black">Оформить заказ</DialogTitle>
+              <p className="text-xs text-gray-600">{product.name}</p>
+            </DialogHeader>
+            <form onSubmit={handleBuy} className="space-y-3">
+              <div className="bg-gray-50 p-2 rounded border flex items-center justify-between">
+                <Button type="button" size="sm" variant="outline" onClick={() => setQuantity(Math.max(6, quantity - 6))}>-</Button>
+                <div className="text-center"><span className="text-xl font-bold">{quantity}</span><span className="text-[10px] ml-1">пар</span></div>
+                <Button type="button" size="sm" variant="outline" onClick={() => setQuantity(quantity + 6)}>+</Button>
+              </div>
+              <Input name="name" placeholder="Ваше имя" className="h-10 text-black bg-white border-gray-300" required />
+              <Input name="phone" placeholder="Ваш телефон" className="h-10 text-black bg-white border-gray-300" required />
+              <Button type="submit" className="w-full h-10 bg-blue-600 text-white font-bold">ОТПРАВИТЬ</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </Card>
-      
-      {/* Просмотр фото */}
-      <Dialog open={imageViewerOpen} onOpenChange={setImageViewerOpen}>
-        <DialogContent className="max-w-4xl p-0 bg-black/90 border-0">
-          <div className="relative flex items-center justify-center min-h-[60vh]">
-            <img src={allPhotos[currentImageIndex]} className="max-h-[80vh] object-contain" />
-            <Button className="absolute right-2 bg-white/20 text-white" onClick={nextImage}><ChevronRight /></Button>
-            <Button className="absolute left-2 bg-white/20 text-white" onClick={prevImage}><ChevronLeft /></Button>
-            <Button className="absolute top-2 right-2 text-white" onClick={() => setImageViewerOpen(false)}><X /></Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </motion.div>
   );
 }
