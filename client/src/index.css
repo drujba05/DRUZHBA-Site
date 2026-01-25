@@ -27,66 +27,85 @@
     backdrop-filter: blur(8px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   }
+
+  /* КЛАСС ДЛЯ ОДИНАКОВЫХ ИКОНОК (Как у WhatsApp/Telegram) */
+  .icon-circle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: transform 0.2s;
+  }
+  .icon-circle:active {
+    transform: scale(0.9);
+  }
 }
 
-/* --- ФИНАЛЬНЫЙ ФИКС ПРОЗРАЧНОСТИ И ШРИФТОВ --- */
+/* --- ФИНАЛЬНЫЙ ФИКС ПРОЗРАЧНОСТИ И ИНТЕРФЕЙСА --- */
 
-/* 1. Модальные окна (Корзина, Быстрый заказ, Лист контент) */
+/* 1. Модальные окна и боковые панели (Корзина, Заказ) */
 div[role="dialog"], 
 .sheet-content, 
 [data-radix-portal] [role="dialog"],
-[data-state="open"].fixed {
+div[data-state="open"].fixed {
     background-color: #ffffff !important;
     background: white !important;
     color: #000000 !important;
     opacity: 1 !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    border: none !important;
 }
 
-/* 2. Текст внутри всех всплывающих окон */
+/* 2. Текст внутри всех всплывающих окон (жестко черный) */
 [role="dialog"] h2, 
 [role="dialog"] p, 
 [role="dialog"] label, 
 [role="dialog"] span, 
-[role="dialog"] div {
+[role="dialog"] div,
+.sheet-content * {
     color: #000000 !important;
     opacity: 1 !important;
 }
 
-/* 3. Затемнение фона (Overlay) — делаем максимально темным без блюра окна */
+/* 3. Оверлей (Затемнение под окном) */
 div[data-state="open"].fixed.inset-0:not([role="dialog"]) {
-    background-color: rgba(0, 0, 0, 0.85) !important;
+    background-color: rgba(0, 0, 0, 0.8) !important;
     backdrop-filter: blur(4px) !important;
-    -webkit-backdrop-filter: blur(4px) !important;
 }
 
-/* 4. Поля ввода (Input) внутри модалок */
+/* 4. ЖЕСТКИЙ ФИКС ДЛЯ УВЕДОМЛЕНИЙ (Toast) */
+/* Нацеливаемся на вьюпорт и сами элементы списка уведомлений */
+[data-radix-toast-viewport] ol,
+[data-radix-toast-viewport] li,
+div[role="status"],
+.Toastify__toast {
+    background-color: #ffffff !important;
+    background: white !important;
+    color: #000000 !important;
+    opacity: 1 !important;
+    border: 2px solid #2563eb !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2) !important;
+    backdrop-filter: none !important;
+}
+
+/* Весь текст внутри уведомления */
+[data-radix-toast-viewport] * {
+    color: #000000 !important;
+    opacity: 1 !important;
+}
+
+/* 5. Поля ввода (Input) */
 [role="dialog"] input {
     background-color: #ffffff !important;
     color: #000000 !important;
     border: 1px solid #cccccc !important;
-    opacity: 1 !important;
 }
 
-/* 5. Уведомления (Toast) "Добавлено в корзину" */
-ol[dir="ltr"] li, 
-div[role="status"] {
-    background-color: #ffffff !important;
-    color: #000000 !important;
-    border: 2px solid #2563eb !important;
-    opacity: 1 !important;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2) !important;
-}
-
-/* 6. Текст в уведомлениях */
-[role="status"] div, 
-[role="status"] p {
-    color: #000000 !important;
-}
-
-/* 7. Исправление для мелких надписей в карточках (Размеры/Заказ) */
+/* 6. Исправление мелкого текста в карточках */
 .text-muted-foreground {
     color: #4b5563 !important;
 }
