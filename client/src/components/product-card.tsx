@@ -2,9 +2,19 @@ import { Product } from "@/lib/products";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
-import { ShoppingCart, Ruler, Box, CloudSun } from "lucide-react";
+import { ShoppingCart, Ruler, Box, CloudSun, Send, Phone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useLocation } from "wouter";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface ProductCardProps {
   product: Product;
@@ -12,43 +22,44 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCart();
-  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [isOpen, setIsOpen] = useState(false);
+  const [phone, setPhone] = useState("");
+  const [name, setName] = useState("");
 
-  const handleAddAction = (shouldRedirect: boolean = false) => {
-    addItem(product, product.pairs_per_box);
+  const handleAddToCart = () => {
+    addItem(product, product.pairs_per_box || 12);
+    toast({
+      title: "Добавлено в корзину",
+      description: `${product.name} — ${product.pairs_per_box || 12} пар`,
+    });
+  };
+
+  const handleQuickOrder = (e: React.FormEvent) => {
+    e.preventDefault();
     
-    if (shouldRedirect) {
-      setTimeout(() => {
-        setLocation("/cart");
-      }, 100);
-    }
+    // Формируем сообщение для WhatsApp (или просто имитируем отправку)
+    const text = `Заказ: ${product.name}\nКол-во: ${product.pairs_per_box} пар\nИмя: ${name}\nТел: ${phone}`;
+    const whatsappUrl = `https://wa.me/996XXXXXX?text=${encodeURIComponent(text)}`;
+    
+    window.open(whatsappUrl, "_blank");
+    setIsOpen(false);
+    toast({ title: "Заявка отправлена!", description: "Мы свяжемся с вами в ближайшее время." });
   };
 
   return (
     <Card className="group overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 rounded-[2rem] bg-white flex flex-col h-full">
       
-      {/* ФОТО ТОВАРА */}
+      {/* ФОТО */}
       <div className="relative aspect-square overflow-hidden bg-slate-50">
         <img
           src={product.main_photo}
           alt={product.name}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
-        
         <div className="absolute top-3 left-3 flex flex-col gap-1">
-          {product.is_new && (
-            <Badge className="bg-green-500 text-[8px] px-2 py-0.5 rounded-lg border-none text-white font-black">NEW</Badge>
-          )}
-          {product.is_bestseller && (
-            <Badge className="bg-orange-500 text-[8px] px-2 py-0.5 rounded-lg border-none text-white font-black">HIT</Badge>
-          )}
-        </div>
-
-        <div className="absolute bottom-3 left-3">
-          <Badge className="bg-white/90 backdrop-blur-sm text-slate-900 border-none px-2 py-1 rounded-lg text-[9px] font-bold flex items-center gap-1 shadow-sm">
-            <CloudSun size={10} className="text-blue-500" />
-            {(product.season || "ДЕМИСЕЗОН").toUpperCase()}
-          </Badge>
+          {product.is_new && <Badge className="bg-green-500 text-[8px] px-2 py-0.5 rounded-lg text-white font-black">NEW</Badge>}
+          {product.is_bestseller && <Badge className="bg-orange-500 text-[8px] px-2 py-0.5 rounded-lg text-white font-black">HIT</Badge>}
         </div>
       </div>
 
@@ -57,52 +68,65 @@ export function ProductCard({ product }: ProductCardProps) {
           {product.name}
         </h3>
 
+        {/* ХАРАКТЕРИСТИКИ */}
         <div className="grid grid-cols-2 gap-2 mb-4">
           <div className="flex flex-col items-start p-2 rounded-xl border border-slate-100 bg-slate-50/50">
             <span className="text-[8px] font-black text-slate-400 uppercase mb-0.5 tracking-tighter">Размер:</span>
-            <div className="flex items-center gap-1">
-              <Ruler size={10} className="text-blue-500" />
-              <span className="text-[10px] font-bold text-slate-700">{product.sizes}</span>
+            <div className="flex items-center gap-1 text-[10px] font-bold text-slate-700">
+              <Ruler size={10} className="text-blue-500" /> {product.sizes}
             </div>
           </div>
-          
           <div className="flex flex-col items-start p-2 rounded-xl border border-slate-100 bg-slate-50/50">
             <span className="text-[8px] font-black text-slate-400 uppercase mb-0.5 tracking-tighter">В коробе:</span>
-            <div className="flex items-center gap-1">
-              <Box size={10} className="text-blue-500" />
-              <span className="text-[10px] font-bold text-slate-700">{product.pairs_per_box} пар</span>
+            <div className="flex items-center gap-1 text-[10px] font-bold text-slate-700">
+              <Box size={10} className="text-blue-500" /> {product.pairs_per_box || 12} пар
             </div>
           </div>
         </div>
 
+        {/* ЦЕНА */}
         <div className="mt-auto">
           <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-black text-blue-600 leading-none tracking-tighter">
-              {product.price}
-            </span>
-            <span className="text-[10px] font-bold text-blue-400 uppercase text-nowrap">сом / пара</span>
+            <span className="text-2xl font-black text-blue-600 leading-none">{product.price}</span>
+            <span className="text-[10px] font-bold text-blue-400 uppercase">сом / пара</span>
           </div>
-          <p className="text-[10px] text-slate-400 font-medium mt-1">
-            Цена за коробку: <span className="text-slate-500 font-bold">{product.price * (product.pairs_per_box || 1)} сом</span>
-          </p>
         </div>
       </CardContent>
 
       <div className="p-4 pt-0 flex flex-col gap-2">
-        <Button 
-          onClick={() => handleAddAction(true)}
-          className="w-full bg-slate-900 hover:bg-black text-white rounded-xl h-11 text-[11px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all"
-        >
-          КУПИТЬ СЕЙЧАС
-        </Button>
+        {/* БЫСТРЫЙ ЗАКАЗ (МОДАЛКА) */}
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <DialogTrigger asChild>
+            <Button className="w-full bg-slate-900 hover:bg-black text-white rounded-xl h-11 text-[11px] font-black uppercase tracking-widest active:scale-95 transition-all">
+              КУПИТЬ СЕЙЧАС
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="rounded-[2rem] max-w-[90%] sm:max-w-[400px]">
+            <DialogHeader>
+              <DialogTitle className="text-center font-black uppercase">Быстрый заказ</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleQuickOrder} className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-slate-400">Ваше имя</Label>
+                <Input required value={name} onChange={(e) => setName(e.target.value)} className="rounded-xl" placeholder="Иван" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-slate-400">Телефон</Label>
+                <Input required type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="rounded-xl" placeholder="+996" />
+              </div>
+              <Button type="submit" className="w-full bg-green-600 h-12 rounded-xl font-black uppercase flex gap-2">
+                <Send size={16} /> Отправить в WhatsApp
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
         
         <Button 
-          variant="outline"
-          onClick={() => handleAddAction(false)}
-          className="w-full border-slate-100 hover:border-blue-100 hover:bg-blue-50 text-slate-500 hover:text-blue-600 rounded-xl h-10 text-[10px] font-bold uppercase transition-colors"
+          variant="outline" 
+          onClick={handleAddToCart}
+          className="w-full border-slate-100 text-slate-500 rounded-xl h-10 text-[10px] font-bold uppercase"
         >
-          <ShoppingCart size={14} className="mr-2" />
-          В корзину (+{product.pairs_per_box})
+          <ShoppingCart size={14} className="mr-2" /> В корзину
         </Button>
       </div>
     </Card>
