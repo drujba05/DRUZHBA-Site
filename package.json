@@ -1,13 +1,14 @@
 {
   "name": "druzhbaa-shop",
   "version": "1.0.0",
+  "type": "module",
   "license": "MIT",
   "scripts": {
-  "build": "tsx script/build.ts",
-  "start": "tsx server/index.ts",
-  "dev": "tsx server/index.ts",
-  "db:push": "drizzle-kit push"
-},
+    "build": "tsx script/build.ts",
+    "start": "tsx server/index.ts",
+    "dev": "tsx server/index.ts",
+    "db:push": "drizzle-kit push"
+  },
   "engines": {
     "node": ">=20.0.0"
   },
