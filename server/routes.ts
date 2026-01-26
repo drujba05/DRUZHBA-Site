@@ -1,8 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertProductSchema } from "@shared/schema";
-import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { v2 as cloudinary } from 'cloudinary';
 import multer from 'multer';
 
@@ -13,16 +11,17 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Используем память для временного хранения файла перед отправкой в облако
+// Настройка Multer для работы с памятью (самый надежный вариант для Railway)
 const upload = multer({ storage: multer.memoryStorage() });
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = "5356415783";
 
+// Вспомогательная функция для текста в Telegram
 async function sendTelegramNotification(message: string) {
   if (!TELEGRAM_BOT_TOKEN) return false;
   try {
-    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -31,26 +30,21 @@ async function sendTelegramNotification(message: string) {
         parse_mode: "HTML",
       }),
     });
-    const result = await response.json();
-    return result.ok;
   } catch (error) {
-    return false;
+    console.error("Telegram Notification Error:", error);
   }
 }
 
+// Вспомогательная функция для фото в Telegram
 async function sendTelegramPhoto(photoUrl: string, caption: string) {
   if (!TELEGRAM_BOT_TOKEN || !photoUrl) return false;
-  const finalUrl = photoUrl.startsWith('http') 
-    ? photoUrl 
-    : `https://druzhbas.live${photoUrl.startsWith('/') ? '' : '/'}${photoUrl}`;
-
   try {
     await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         chat_id: TELEGRAM_CHAT_ID,
-        photo: finalUrl,
+        photo: photoUrl,
         caption: caption,
         parse_mode: "HTML",
       }),
@@ -61,16 +55,15 @@ async function sendTelegramPhoto(photoUrl: string, caption: string) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  registerObjectStorageRoutes(app);
-
-  // --- УЛУЧШЕННАЯ ЗАГРУЗКА ФОТО ---
+  
+  // --- НОВАЯ ЗАГРУЗКА ФОТО (Cloudinary) ---
   app.post("/api/upload", upload.single("file"), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ success: false, message: "Файл не получен" });
       }
 
-      // Конвертируем буфер в Base64 для надежной отправки
+      // Оптимизированный метод отправки в облако через Base64
       const b64 = Buffer.from(req.file.buffer).toString("base64");
       const dataURI = "data:" + req.file.mimetype + ";base64," + b64;
 
@@ -79,10 +72,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         folder: "products",
       });
 
-      console.log("Cloudinary success:", result.secure_url);
       res.json({ success: true, url: result.secure_url });
     } catch (error: any) {
-      console.error("Cloudinary Error Log:", error);
+      console.error("Cloudinary Error:", error);
       res.status(500).json({ 
         success: false, 
         message: "Ошибка облака", 
@@ -91,7 +83,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // 1. КОРЗИНА
+  // 1. ЗАКАЗ ЧЕРЕЗ КОРЗИНУ
   app.post("/api/orders", async (req, res) => {
     try {
       const { items, customerName, customerPhone, totalPrice } = req.body;
@@ -140,17 +132,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       return res.status(200).json({ success: true });
     } catch (error) {
+      console.error("Quick Order Error:", error);
       return res.status(500).json({ success: false, message: "Ошибка сервера" });
     }
   });
 
-  // 3. ТОВАРЫ
+  // 3. API ДЛЯ ТОВАРОВ
   app.get("/api/products", async (_req, res) => {
     try {
       const allProducts = await storage.getProducts();
       res.json(allProducts);
     } catch (e) {
-      res.status(500).json({ message: "Ошибка загрузки" });
+      res.status(500).json({ message: "Ошибка загрузки списка" });
     }
   });
 
@@ -159,7 +152,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const product = await storage.createProduct(req.body);
       res.status(201).json(product);
     } catch (e) {
-      res.status(500).json({ message: "Ошибка создания" });
+      res.status(500).json({ message: "Ошибка создания товара" });
+    }
+  });
+
+  app.patch("/api/products/:id", async (req, res) => {
+    try {
+      const product = await storage.updateProduct(req.params.id as any, req.body);
+      res.json(product);
+    } catch (e) {
+      res.status(500).json({ message: "Ошибка обновления" });
     }
   });
 
@@ -174,5 +176,4 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const httpServer = createServer(app);
   return httpServer;
-        }
-        
+}
