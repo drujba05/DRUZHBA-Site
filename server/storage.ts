@@ -1,57 +1,63 @@
-import { products, type Product, type InsertProduct } from "@shared/schema";
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import { insertProductSchema } from "@shared/schema";
 
-export interface IStorage {
-  getProducts(): Promise<Product[]>;
-  getProduct(id: number): Promise<Product | undefined>;
-  createProduct(product: InsertProduct): Promise<Product>;
-  updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product>;
-  deleteProduct(id: number): Promise<void>;
-}
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Получение всех товаров
+  app.get("/api/products", async (_req, res) => {
+    try {
+      const products = await storage.getProducts();
+      res.json(products);
+    } catch (e) {
+      res.status(500).json({ message: "Ошибка при получении товаров" });
+    }
+  });
 
-export class MemStorage implements IStorage {
-  private products: Map<number, Product>;
-  private currentId: number;
+  // Добавление товара
+  app.post("/api/products", async (req, res) => {
+    try {
+      // Валидация данных через схему
+      const result = insertProductSchema.safeParse(req.body);
+      
+      if (!result.success) {
+        console.error("Ошибка валидации:", result.error.format());
+        return res.status(400).json({ 
+          message: "Неверный формат данных", 
+          errors: result.error.format() 
+        });
+      }
 
-  constructor() {
-    this.products = new Map();
-    this.currentId = 1;
-  }
+      const product = await storage.createProduct(result.data);
+      res.status(201).json(product);
+    } catch (e: any) {
+      console.error("Ошибка сервера при создании:", e);
+      res.status(500).json({ message: e.message || "Ошибка сервера" });
+    }
+  });
 
-  async getProducts(): Promise<Product[]> {
-    return Array.from(this.products.values());
-  }
+  // Обновление товара
+  app.patch("/api/products/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const product = await storage.updateProduct(id, req.body);
+      res.json(product);
+    } catch (e: any) {
+      res.status(500).json({ message: "Ошибка при обновлении" });
+    }
+  });
 
-  async getProduct(id: number): Promise<Product | undefined> {
-    return this.products.get(id);
-  }
+  // Удаление товара
+  app.delete("/api/products/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteProduct(id);
+      res.status(204).end();
+    } catch (e) {
+      res.status(500).json({ message: "Ошибка при удалении" });
+    }
+  });
 
-  async createProduct(insertProduct: InsertProduct): Promise<Product> {
-    const id = this.currentId++;
-    const product: Product = { 
-      ...insertProduct, 
-      id,
-      sku: insertProduct.sku ?? "",
-      description: insertProduct.description ?? "",
-      additional_photos: insertProduct.additional_photos ?? [],
-      pairs_per_box: insertProduct.pairs_per_box ?? "",
-      is_bestseller: insertProduct.is_bestseller ?? false,
-      is_new: insertProduct.is_new ?? true
-    };
-    this.products.set(id, product);
-    return product;
-  }
-
-  async updateProduct(id: number, update: Partial<InsertProduct>): Promise<Product> {
-    const existing = this.products.get(id);
-    if (!existing) throw new Error("Товар не найден");
-    const updated = { ...existing, ...update };
-    this.products.set(id, updated);
-    return updated;
-  }
-
-  async deleteProduct(id: number): Promise<void> {
-    this.products.delete(id);
-  }
-}
-
-export const storage = new MemStorage();
+  const httpServer = createServer(app);
+  return httpServer;
+    }
