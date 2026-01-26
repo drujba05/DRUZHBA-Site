@@ -1,4 +1,11 @@
-import { useForm } from "react-hook-form";
+export function AdminPanel({ ... }) {
+  return (
+    <div>
+      <h1 className="text-5xl text-red-600 font-bold">ПРОВЕРКА СВЯЗИ</h1>
+      {/* остальной код */}
+    </div>
+  );
+}import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
