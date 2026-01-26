@@ -292,4 +292,4 @@ export function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeletePr
       </div>
     </div>
   );
-        }
+}
