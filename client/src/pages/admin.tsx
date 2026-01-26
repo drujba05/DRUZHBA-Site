@@ -96,13 +96,6 @@ export default function AdminPage() {
 
       {/* Контент */}
       <div className="p-4">
-        <AdminPanel
-          products={products}
-          onAddProduct={addProduct}
-          onUpdateProduct={updateProduct}
-          onDeleteProduct={deleteProduct}
-        />
-      </div>
-    </div>
-  );
-          }
+  <h2 className="text-xl font-bold">Админка работает ✅</h2>
+  <p>Товаров: {products?.length ?? 0}</p>
+</div>
