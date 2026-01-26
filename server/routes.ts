@@ -4,7 +4,6 @@ import { storage } from "./storage";
 import { insertProductSchema } from "@shared/schema";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { v2 as cloudinary } from 'cloudinary';
-import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import multer from 'multer';
 
 // 1. КОНФИГУРАЦИЯ CLOUDINARY
@@ -14,21 +13,12 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// 2. НАСТРОЙКА ХРАНИЛИЩА MULTER
-const cloudinaryStorage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'products',
-    allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
-  } as any,
-});
-
-const upload = multer({ storage: cloudinaryStorage });
+// Используем память для временного хранения файла перед отправкой в облако
+const upload = multer({ storage: multer.memoryStorage() });
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = "5356415783";
 
-// Вспомогательная функция для текста
 async function sendTelegramNotification(message: string) {
   if (!TELEGRAM_BOT_TOKEN) return false;
   try {
@@ -48,7 +38,6 @@ async function sendTelegramNotification(message: string) {
   }
 }
 
-// Вспомогательная функция для фото
 async function sendTelegramPhoto(photoUrl: string, caption: string) {
   if (!TELEGRAM_BOT_TOKEN || !photoUrl) return false;
   const finalUrl = photoUrl.startsWith('http') 
@@ -74,13 +63,31 @@ async function sendTelegramPhoto(photoUrl: string, caption: string) {
 export async function registerRoutes(app: Express): Promise<Server> {
   registerObjectStorageRoutes(app);
 
-  // ЗАГРУЗКА ФОТО
-  app.post("/api/upload", upload.single("file"), (req: any, res) => {
+  // --- УЛУЧШЕННАЯ ЗАГРУЗКА ФОТО ---
+  app.post("/api/upload", upload.single("file"), async (req, res) => {
     try {
-      if (!req.file) return res.status(400).json({ success: false, message: "Файл не загружен" });
-      res.json({ success: true, url: req.file.path });
-    } catch (error) {
-      res.status(500).json({ success: false, message: "Ошибка облака" });
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: "Файл не получен" });
+      }
+
+      // Конвертируем буфер в Base64 для надежной отправки
+      const b64 = Buffer.from(req.file.buffer).toString("base64");
+      const dataURI = "data:" + req.file.mimetype + ";base64," + b64;
+
+      const result = await cloudinary.uploader.upload(dataURI, {
+        resource_type: "auto",
+        folder: "products",
+      });
+
+      console.log("Cloudinary success:", result.secure_url);
+      res.json({ success: true, url: result.secure_url });
+    } catch (error: any) {
+      console.error("Cloudinary Error Log:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Ошибка облака", 
+        details: error.message 
+      });
     }
   });
 
@@ -108,12 +115,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // 2. БЫСТРЫЙ ЗАКАЗ (ДОРАБОТАННЫЙ)
+  // 2. БЫСТРЫЙ ЗАКАЗ
   app.post("/api/quick-order", async (req, res) => {
     try {
       const { productId, customerName, customerPhone, color, quantity } = req.body;
-      
-      // Ищем товар по строковому ID
       const product = await storage.getProduct(productId);
       
       const pricePerUnit = Number(product?.price) || 0;
@@ -128,19 +133,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `🔢 <b>Количество:</b> ${qty} шт\n` +
         `💰 <b>Сумма:</b> ${totalAmount.toLocaleString()} сом`;
 
-      // Сначала отправляем уведомление
       await sendTelegramNotification(message);
-
-      // Потом фото (если есть)
       if (product?.main_photo) {
         await sendTelegramPhoto(product.main_photo, `Быстрый заказ: ${product.name}`);
       }
 
-      // ОЧЕНЬ ВАЖНО: Всегда отвечаем успехом, чтобы фронтенд закрыл модалку
       return res.status(200).json({ success: true });
     } catch (error) {
-      console.error("Quick Order Error:", error);
-      // Если ошибка — тоже отвечаем JSON-ом, чтобы фронтенд не «висел»
       return res.status(500).json({ success: false, message: "Ошибка сервера" });
     }
   });
@@ -175,5 +174,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const httpServer = createServer(app);
   return httpServer;
-      }
-    
+        }
+        
