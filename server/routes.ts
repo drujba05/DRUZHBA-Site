@@ -57,11 +57,11 @@ async function sendTelegramPhoto(photoUrl: string, caption: string) {
   }
 }
 
-// ИСПРАВЛЕНО: Убран лишний аргумент httpServer
 export async function registerRoutes(app: Express): Promise<Server> {
-  
+  // Интеграция хранилища Replit (если используется)
   registerObjectStorageRoutes(app);
   
+  // Создание заказов
   app.post("/api/orders", async (req, res) => {
     try {
       const { items, customerName, customerPhone, totalPrice } = req.body;
@@ -93,19 +93,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(500).json({ success: false, message: "Ошибка отправки в Telegram" });
       }
     } catch (error) {
-      res.status(500).json({ message: "Ошибка сервера" });
+      console.error("Order API error:", error);
+      res.status(500).json({ message: "Ошибка сервера при оформлении заказа" });
     }
   });
 
+  // Получение всех товаров
   app.get("/api/products", async (_req, res) => {
     try {
       const products = await storage.getProducts();
       res.json(products);
     } catch (error: any) {
+      console.error("Get products error:", error);
       res.status(500).json({ message: "Ошибка загрузки товаров", error: error.message });
     }
   });
 
+  // Создание нового товара
   app.post("/api/products", async (req, res) => {
     try {
       const parsed = insertProductSchema.safeParse(req.body);
@@ -115,26 +119,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const product = await storage.createProduct(parsed.data);
       res.status(201).json(product);
     } catch (error) {
+      console.error("Create product error:", error);
       res.status(500).json({ message: "Ошибка создания товара" });
     }
   });
 
+  // Частичное обновление товара
   app.patch("/api/products/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Некорректный ID" });
+      
       const product = await storage.updateProduct(id, req.body);
+      if (!product) return res.status(404).json({ message: "Товар не найден" });
+      
       res.json(product);
     } catch (error) {
+      console.error("Update product error:", error);
       res.status(500).json({ message: "Ошибка обновления" });
     }
   });
 
+  // Удаление товара
   app.delete("/api/products/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Некорректный ID" });
+      
       await storage.deleteProduct(id);
       res.json({ success: true });
     } catch (error) {
+      console.error("Delete product error:", error);
       res.status(500).json({ message: "Ошибка удаления" });
     }
   });
