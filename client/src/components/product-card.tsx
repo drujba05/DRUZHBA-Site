@@ -2,7 +2,7 @@ import { Product } from "@/lib/products";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
-import { ShoppingCart, Ruler, Box, Palette, ChevronLeft, ChevronRight, X, Maximize2, Minus, Plus, Check } from "lucide-react";
+import { ShoppingCart, Ruler, Box, Palette, ChevronLeft, ChevronRight, X, Maximize2, Minus, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -32,15 +32,44 @@ export function ProductCard({ product }: { product: Product }) {
     setIsOrderOpen(true);
   };
 
-  const handleAction = () => {
+  // --- ИСПРАВЛЕННАЯ ЛОГИКА ОТПРАВКИ ---
+  const handleAction = async () => {
     if (mode === "cart") {
       addItem(product, totalPairs, selectedColor);
       toast({ title: "Добавлено в корзину", description: `${product.name} — ${totalPairs} пар` });
       setIsOrderOpen(false);
     } else {
-      // Здесь логика быстрого заказа через API
-      toast({ title: "Заказ оформлен" });
-      setIsOrderOpen(false);
+      try {
+        const response = await fetch("/api/quick-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            productId: product.id,
+            customerName: name,
+            customerPhone: phone,
+            color: selectedColor,
+            quantity: totalPairs
+          }),
+        });
+
+        if (response.ok) {
+          toast({ 
+            title: "Заказ оформлен!", 
+            description: "Мы скоро свяжемся с вами в Telegram/WhatsApp" 
+          });
+          setName("");
+          setPhone("");
+          setIsOrderOpen(false);
+        } else {
+          throw new Error();
+        }
+      } catch (error) {
+        toast({ 
+          variant: "destructive",
+          title: "Ошибка", 
+          description: "Не удалось отправить заказ. Проверьте интернет." 
+        });
+      }
     }
   };
 
@@ -71,7 +100,6 @@ export function ProductCard({ product }: { product: Product }) {
       <CardContent className="p-5 flex flex-col flex-grow">
         <h3 className="font-black text-slate-900 text-[14px] uppercase mb-4 leading-tight min-h-[35px]">{product.name}</h3>
 
-        {/* ПАРАМЕТРЫ */}
         <div className="space-y-2 mb-4">
           <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100/50">
             <Palette size={14} className="text-blue-500" />
@@ -98,7 +126,6 @@ export function ProductCard({ product }: { product: Product }) {
           </div>
         </div>
 
-        {/* ЦЕНА - компактно снизу */}
         <div className="mt-auto pt-2 mb-4">
           <div className="flex items-baseline gap-1">
             <span className="text-2xl font-black text-blue-600 leading-none">{product.price}</span>
@@ -106,7 +133,6 @@ export function ProductCard({ product }: { product: Product }) {
           </div>
         </div>
 
-        {/* КНОПКИ ДРУГ ПОД ДРУГОМ */}
         <div className="flex flex-col gap-2">
           <Button 
             onClick={() => openModal("quick")}
@@ -136,15 +162,33 @@ export function ProductCard({ product }: { product: Product }) {
             </>
           )}
           <img src={allPhotos[currentPhotoIdx]} className="max-w-full max-h-full object-contain" alt="Gallery"/>
-          <div className="absolute bottom-10 text-white/50 font-black text-xs tracking-widest">{currentPhotoIdx + 1} / {allPhotos.length}</div>
         </DialogContent>
       </Dialog>
 
-      {/* МОДАЛКА ЗАКАЗА / КОРЗИНЫ */}
+      {/* МОДАЛКА ЗАКАЗА */}
       <Dialog open={isOrderOpen} onOpenChange={setIsOrderOpen}>
         <DialogContent className="rounded-[2.5rem] p-6 max-w-[400px]">
           <DialogHeader><DialogTitle className="font-black uppercase text-center text-xl">{mode === "quick" ? "Быстрый заказ" : "В корзину"}</DialogTitle></DialogHeader>
           <div className="space-y-6 pt-4">
+            
+            {/* ВЫБОР ЦВЕТА (Новое!) */}
+            {colorOptions.length > 0 && (
+              <div className="space-y-2">
+                <span className="text-[10px] font-black text-slate-400 uppercase">Выберите цвет:</span>
+                <div className="flex flex-wrap gap-2">
+                  {colorOptions.map(c => (
+                    <button 
+                      key={c}
+                      onClick={() => setSelectedColor(c)}
+                      className={`px-3 py-1.5 text-[10px] font-bold rounded-full border transition-all ${selectedColor === c ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-50 text-slate-500 border-slate-100'}`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-col items-center p-5 bg-blue-50 rounded-[2rem]">
               <span className="text-[10px] font-black text-blue-400 uppercase mb-3">Количество (шаг 6)</span>
               <div className="flex items-center gap-8">
@@ -153,18 +197,20 @@ export function ProductCard({ product }: { product: Product }) {
                 <Button variant="ghost" className="h-10 w-10 rounded-full bg-white shadow-sm" onClick={() => setTotalPairs(totalPairs + 6)}><Plus size={16}/></Button>
               </div>
             </div>
+
             {mode === "quick" && (
               <div className="space-y-3">
                 <Input placeholder="Ваше имя" className="h-12 rounded-xl bg-slate-50 border-none" value={name} onChange={e => setName(e.target.value)} />
                 <Input placeholder="Телефон" className="h-12 rounded-xl bg-slate-50 border-none" value={phone} onChange={e => setPhone(e.target.value)} />
               </div>
             )}
-            <Button onClick={handleAction} className="w-full h-14 bg-blue-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest">
-              {mode === "quick" ? "Оформить" : "Добавить"} — {(product.price * totalPairs).toLocaleString()} сом
+            
+            <Button onClick={handleAction} className="w-full h-14 bg-blue-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-700 transition-colors">
+              {mode === "quick" ? "Заказать сейчас" : "Добавить в корзину"} — {(product.price * totalPairs).toLocaleString()} сом
             </Button>
           </div>
         </DialogContent>
       </Dialog>
     </Card>
   );
-        }
+}
