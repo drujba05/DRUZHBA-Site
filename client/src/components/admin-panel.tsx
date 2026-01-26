@@ -115,10 +115,18 @@ export function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeletePr
                 )}/>
                 <div className="grid grid-cols-2 gap-4">
                   <FormField control={form.control} name="price" render={({field}) => (
-                    <FormItem><FormLabel>Цена</FormLabel><FormControl><Input type="number" {...field}/></FormControl></FormItem>
+                    <FormItem><FormLabel>Цена (пара)</FormLabel><FormControl><Input type="number" {...field}/></FormControl></FormItem>
                   )}/>
                   <FormField control={form.control} name="pairs_per_box" render={({field}) => (
                     <FormItem><FormLabel>В коробе (инфо)</FormLabel><FormControl><Input placeholder="12 пар" {...field}/></FormControl></FormItem>
+                  )}/>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField control={form.control} name="sizes" render={({field}) => (
+                    <FormItem><FormLabel>Размеры</FormLabel><FormControl><Input placeholder="36-41" {...field}/></FormControl></FormItem>
+                  )}/>
+                  <FormField control={form.control} name="colors" render={({field}) => (
+                    <FormItem><FormLabel>Цвета</FormLabel><FormControl><Input placeholder="Черный, Синий" {...field}/></FormControl></FormItem>
                   )}/>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -135,8 +143,8 @@ export function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeletePr
                       </Select>
                     </FormItem>
                   )}/>
-                   <FormField control={form.control} name="sku" render={({field}) => (
-                    <FormItem><FormLabel>Артикул</FormLabel><FormControl><Input {...field}/></FormControl></FormItem>
+                  <FormField control={form.control} name="sku" render={({field}) => (
+                    <FormItem><FormLabel>Артикул (SKU)</FormLabel><FormControl><Input {...field}/></FormControl></FormItem>
                   )}/>
                 </div>
                 <div className="flex gap-4 p-2 bg-slate-50 rounded-lg border border-dashed">
@@ -213,4 +221,4 @@ export function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeletePr
       </div>
     </div>
   );
-        }
+                  }
