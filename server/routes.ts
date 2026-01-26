@@ -7,153 +7,92 @@ import { registerObjectStorageRoutes } from "./replit_integrations/object_storag
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = "5356415783";
 
+// Общая функция для текста
 async function sendTelegramNotification(message: string) {
-  if (!TELEGRAM_BOT_TOKEN) {
-    console.error("TELEGRAM_BOT_TOKEN is not set");
-    return false;
-  }
+  if (!TELEGRAM_BOT_TOKEN) return false;
   try {
-    const response = await fetch(
-      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: TELEGRAM_CHAT_ID,
-          text: message,
-          parse_mode: "HTML",
-        }),
-      }
-    );
+    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: message, parse_mode: "HTML" }),
+    });
     const result = await response.json();
     return result.ok;
   } catch (error) {
-    console.error("Failed to send Telegram notification:", error);
     return false;
   }
 }
 
+// Общая функция для фото
 async function sendTelegramPhoto(photoUrl: string, caption: string) {
   if (!TELEGRAM_BOT_TOKEN) return false;
   try {
-    const response = await fetch(
-      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: TELEGRAM_CHAT_ID,
-          photo: photoUrl,
-          caption: caption,
-          parse_mode: "HTML",
-        }),
-      }
-    );
-    const result = await response.json();
-    return result.ok;
-  } catch (error) {
-    console.error("Failed to send Telegram photo:", error);
-    return false;
-  }
+    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, photo: photoUrl, caption: caption, parse_mode: "HTML" }),
+    });
+  } catch (e) {}
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Интеграция хранилища Replit (если используется)
   registerObjectStorageRoutes(app);
-  
-  // Создание заказов
+
+  // 1. ОБЫЧНЫЙ ЗАКАЗ (ИЗ КОРЗИНЫ)
   app.post("/api/orders", async (req, res) => {
     try {
       const { items, customerName, customerPhone, totalPrice } = req.body;
-      if (!items || !Array.isArray(items) || items.length === 0) {
-        return res.status(400).json({ message: "Корзина пуста" });
-      }
-
-      const itemsList = items
-        .map((item: any) => `  • ${item.name}${item.selectedColor ? ` (${item.selectedColor})` : ""} — ${item.quantity} пар (${item.price * item.quantity} сом)`)
-        .join("\n");
-
-      const message = `🛒 <b>НОВЫЙ ЗАКАЗ!</b>\n\n` +
-        `👤 <b>Клиент:</b> ${customerName || "Не указано"}\n` +
-        `📱 <b>Телефон:</b> ${customerPhone || "Не указано"}\n\n` +
-        `📦 <b>Товары:</b>\n${itemsList}\n\n` +
-        `💰 <b>Итого:</b> ${totalPrice} сом`;
-
-      const sent = await sendTelegramNotification(message);
-
-      if (sent) {
-        for (const item of items) {
-          if (item.main_photo) {
-            const fullPhotoUrl = `https://druzhbas.live${item.main_photo}`;
-            await sendTelegramPhoto(fullPhotoUrl, `📷 ${item.name} — ${item.quantity} пар`);
-          }
-        }
-        res.json({ success: true, message: "Заказ отправлен" });
-      } else {
-        res.status(500).json({ success: false, message: "Ошибка отправки в Telegram" });
-      }
-    } catch (error) {
-      console.error("Order API error:", error);
-      res.status(500).json({ message: "Ошибка сервера при оформлении заказа" });
-    }
-  });
-
-  // Получение всех товаров
-  app.get("/api/products", async (_req, res) => {
-    try {
-      const products = await storage.getProducts();
-      res.json(products);
-    } catch (error: any) {
-      console.error("Get products error:", error);
-      res.status(500).json({ message: "Ошибка загрузки товаров", error: error.message });
-    }
-  });
-
-  // Создание нового товара
-  app.post("/api/products", async (req, res) => {
-    try {
-      const parsed = insertProductSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({ message: "Неверные данные", errors: parsed.error.errors });
-      }
-      const product = await storage.createProduct(parsed.data);
-      res.status(201).json(product);
-    } catch (error) {
-      console.error("Create product error:", error);
-      res.status(500).json({ message: "Ошибка создания товара" });
-    }
-  });
-
-  // Частичное обновление товара
-  app.patch("/api/products/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) return res.status(400).json({ message: "Некорректный ID" });
+      const itemsList = items.map((item: any) => ` • ${item.name} — ${item.quantity} шт`).join("\n");
+      const message = `🛒 <b>ЗАКАЗ ИЗ КОРЗИНЫ</b>\n\n👤 ${customerName}\n📱 ${customerPhone}\n\n📦 <b>Товары:</b>\n${itemsList}\n\n💰 <b>Итого:</b> ${totalPrice} сом`;
       
-      const product = await storage.updateProduct(id, req.body);
-      if (!product) return res.status(404).json({ message: "Товар не найден" });
-      
-      res.json(product);
-    } catch (error) {
-      console.error("Update product error:", error);
-      res.status(500).json({ message: "Ошибка обновления" });
-    }
-  });
-
-  // Удаление товара
-  app.delete("/api/products/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) return res.status(400).json({ message: "Некорректный ID" });
-      
-      await storage.deleteProduct(id);
+      await sendTelegramNotification(message);
       res.json({ success: true });
     } catch (error) {
-      console.error("Delete product error:", error);
-      res.status(500).json({ message: "Ошибка удаления" });
+      res.status(500).send("Error");
     }
+  });
+
+  // 2. БЫСТРЫЙ ЗАКАЗ (ТО, ЧТО ПРОПАЛО)
+  app.post("/api/quick-order", async (req, res) => {
+    try {
+      const { productId, customerName, customerPhone, color } = req.body;
+      const product = await storage.getProduct(productId);
+
+      const message = `⚡ <b>БЫСТРЫЙ ЗАКАЗ</b>\n\n` +
+        `👤 <b>Клиент:</b> ${customerName || "Не указано"}\n` +
+        `📱 <b>Телефон:</b> ${customerPhone || "Не указано"}\n` +
+        `📦 <b>Товар:</b> ${product?.name || "ID: " + productId}\n` +
+        `🎨 <b>Цвет:</b> ${color || "Не выбран"}`;
+
+      await sendTelegramNotification(message);
+      
+      if (product?.main_photo) {
+        await sendTelegramPhoto(`https://druzhbas.live${product.main_photo}`, `Фото к быстрому заказу`);
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Quick order error:", error);
+      res.status(500).json({ message: "Ошибка" });
+    }
+  });
+
+  // 3. ТОВАРЫ (API)
+  app.get("/api/products", async (_req, res) => {
+    const products = await storage.getProducts();
+    res.json(products);
+  });
+
+  app.post("/api/products", async (req, res) => {
+    const product = await storage.createProduct(req.body);
+    res.status(201).json(product);
+  });
+
+  app.delete("/api/products/:id", async (req, res) => {
+    await storage.deleteProduct(Number(req.params.id));
+    res.json({ success: true });
   });
 
   const httpServer = createServer(app);
   return httpServer;
-      }
+}
