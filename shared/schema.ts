@@ -15,7 +15,7 @@ export const products = pgTable("products", {
   season: text("season").default("Все сезоны"),
   gender: text("gender").default("Универсальные"),
   min_order_quantity: integer("min_order_quantity").default(6),
-  pairs_per_box: text("pairs_per_box").default(""), 
+  pairs_per_box: text("pairs_per_box").default(""), // Убедись, что эта строка есть
   main_photo: text("main_photo").notNull(),
   additional_photos: text("additional_photos").array(),
   is_bestseller: boolean("is_bestseller").default(false),
