@@ -14,7 +14,7 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// 2. НАСТРОЙКА ХРАНИЛИЩА MULTER ДЛЯ CLOUDINARY
+// 2. НАСТРОЙКА ХРАНИЛИЩА MULTER
 const cloudinaryStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -28,22 +28,19 @@ const upload = multer({ storage: cloudinaryStorage });
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = "5356415783";
 
-// Вспомогательная функция для отправки текста в Telegram
+// Вспомогательная функция для текста
 async function sendTelegramNotification(message: string) {
   if (!TELEGRAM_BOT_TOKEN) return false;
   try {
-    const response = await fetch(
-      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: TELEGRAM_CHAT_ID,
-          text: message,
-          parse_mode: "HTML",
-        }),
-      }
-    );
+    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text: message,
+        parse_mode: "HTML",
+      }),
+    });
     const result = await response.json();
     return result.ok;
   } catch (error) {
@@ -51,11 +48,9 @@ async function sendTelegramNotification(message: string) {
   }
 }
 
-// Вспомогательная функция для отправки фото в Telegram
+// Вспомогательная функция для фото
 async function sendTelegramPhoto(photoUrl: string, caption: string) {
   if (!TELEGRAM_BOT_TOKEN || !photoUrl) return false;
-  
-  // Cloudinary выдает полные ссылки, поэтому просто используем photoUrl
   const finalUrl = photoUrl.startsWith('http') 
     ? photoUrl 
     : `https://druzhbas.live${photoUrl.startsWith('/') ? '' : '/'}${photoUrl}`;
@@ -79,15 +74,13 @@ async function sendTelegramPhoto(photoUrl: string, caption: string) {
 export async function registerRoutes(app: Express): Promise<Server> {
   registerObjectStorageRoutes(app);
 
-  // --- РОУТ ДЛЯ ЗАГРУЗКИ ФОТО В CLOUDINARY ---
+  // ЗАГРУЗКА ФОТО
   app.post("/api/upload", upload.single("file"), (req: any, res) => {
     try {
-      if (!req.file) return res.status(400).json({ message: "Файл не загружен" });
-      // Возвращаем прямую ссылку на фото в облаке
-      res.json({ url: req.file.path });
+      if (!req.file) return res.status(400).json({ success: false, message: "Файл не загружен" });
+      res.json({ success: true, url: req.file.path });
     } catch (error) {
-      console.error("Upload Error:", error);
-      res.status(500).json({ message: "Ошибка при загрузке в облако" });
+      res.status(500).json({ success: false, message: "Ошибка облака" });
     }
   });
 
@@ -105,62 +98,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `📦 <b>Товары:</b>\n${itemsList}\n\n` +
         `💰 <b>Итого:</b> ${totalPrice} сом`;
 
-      const sent = await sendTelegramNotification(message);
-      if (sent && items?.[0]?.main_photo) {
+      await sendTelegramNotification(message);
+      if (items?.[0]?.main_photo) {
         await sendTelegramPhoto(items[0].main_photo, `Заказ от ${customerName}`);
       }
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ message: "Ошибка" });
+      res.status(500).json({ success: false });
     }
   });
 
-  // 2. БЫСТРЫЙ ЗАКАЗ
+  // 2. БЫСТРЫЙ ЗАКАЗ (ДОРАБОТАННЫЙ)
   app.post("/api/quick-order", async (req, res) => {
     try {
       const { productId, customerName, customerPhone, color, quantity } = req.body;
+      
+      // Ищем товар по строковому ID
       const product = await storage.getProduct(productId);
       
       const pricePerUnit = Number(product?.price) || 0;
-      const totalAmount = pricePerUnit * (Number(quantity) || 1);
+      const qty = Number(quantity) || 1;
+      const totalAmount = pricePerUnit * qty;
 
       const message = `⚡ <b>БЫСТРЫЙ ЗАКАЗ!</b>\n\n` +
         `👤 <b>Клиент:</b> ${customerName || "Не указано"}\n` +
         `📱 <b>Телефон:</b> ${customerPhone || "Не указано"}\n\n` +
         `📦 <b>Товар:</b> ${product?.name || "ID: " + productId}\n` +
         `🎨 <b>Цвет:</b> ${color || "Не выбран"}\n` +
-        `🔢 <b>Количество:</b> ${quantity || 1} шт\n` +
+        `🔢 <b>Количество:</b> ${qty} шт\n` +
         `💰 <b>Сумма:</b> ${totalAmount.toLocaleString()} сом`;
 
-      const sent = await sendTelegramNotification(message);
+      // Сначала отправляем уведомление
+      await sendTelegramNotification(message);
 
-      if (sent && product?.main_photo) {
+      // Потом фото (если есть)
+      if (product?.main_photo) {
         await sendTelegramPhoto(product.main_photo, `Быстрый заказ: ${product.name}`);
       }
-      res.json({ success: true });
+
+      // ОЧЕНЬ ВАЖНО: Всегда отвечаем успехом, чтобы фронтенд закрыл модалку
+      return res.status(200).json({ success: true });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Ошибка" });
+      console.error("Quick Order Error:", error);
+      // Если ошибка — тоже отвечаем JSON-ом, чтобы фронтенд не «висел»
+      return res.status(500).json({ success: false, message: "Ошибка сервера" });
     }
   });
 
-  // 3. ТОВАРЫ (API)
+  // 3. ТОВАРЫ
   app.get("/api/products", async (_req, res) => {
-    const allProducts = await storage.getProducts();
-    res.json(allProducts);
+    try {
+      const allProducts = await storage.getProducts();
+      res.json(allProducts);
+    } catch (e) {
+      res.status(500).json({ message: "Ошибка загрузки" });
+    }
   });
 
   app.post("/api/products", async (req, res) => {
-    const product = await storage.createProduct(req.body);
-    res.status(201).json(product);
+    try {
+      const product = await storage.createProduct(req.body);
+      res.status(201).json(product);
+    } catch (e) {
+      res.status(500).json({ message: "Ошибка создания" });
+    }
   });
 
   app.delete("/api/products/:id", async (req, res) => {
-    await storage.deleteProduct(req.params.id as any);
-    res.json({ success: true });
+    try {
+      await storage.deleteProduct(req.params.id as any);
+      res.json({ success: true });
+    } catch (e) {
+      res.status(500).json({ message: "Ошибка удаления" });
+    }
   });
 
   const httpServer = createServer(app);
   return httpServer;
-                                                  }
-        
+      }
+    
