@@ -12,7 +12,6 @@ async function sendTelegramNotification(message: string) {
     console.error("TELEGRAM_BOT_TOKEN is not set");
     return false;
   }
-
   try {
     const response = await fetch(
       `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
@@ -26,7 +25,6 @@ async function sendTelegramNotification(message: string) {
         }),
       }
     );
-
     const result = await response.json();
     return result.ok;
   } catch (error) {
@@ -36,11 +34,7 @@ async function sendTelegramNotification(message: string) {
 }
 
 async function sendTelegramPhoto(photoUrl: string, caption: string) {
-  if (!TELEGRAM_BOT_TOKEN) {
-    console.error("TELEGRAM_BOT_TOKEN is not set");
-    return false;
-  }
-
+  if (!TELEGRAM_BOT_TOKEN) return false;
   try {
     const response = await fetch(
       `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`,
@@ -55,7 +49,6 @@ async function sendTelegramPhoto(photoUrl: string, caption: string) {
         }),
       }
     );
-
     const result = await response.json();
     return result.ok;
   } catch (error) {
@@ -64,15 +57,14 @@ async function sendTelegramPhoto(photoUrl: string, caption: string) {
   }
 }
 
+// ИСПРАВЛЕНО: Убран лишний аргумент httpServer
 export async function registerRoutes(app: Express): Promise<Server> {
   
   registerObjectStorageRoutes(app);
   
-  // Заказы
   app.post("/api/orders", async (req, res) => {
     try {
       const { items, customerName, customerPhone, totalPrice } = req.body;
-
       if (!items || !Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ message: "Корзина пуста" });
       }
@@ -85,147 +77,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `👤 <b>Клиент:</b> ${customerName || "Не указано"}\n` +
         `📱 <b>Телефон:</b> ${customerPhone || "Не указано"}\n\n` +
         `📦 <b>Товары:</b>\n${itemsList}\n\n` +
-        `💰 <b>Итого:</b> ${totalPrice} сом\n\n` +
-        `📅 ${new Date().toLocaleString("ru-RU", { timeZone: "Asia/Bishkek" })}`;
+        `💰 <b>Итого:</b> ${totalPrice} сом`;
 
       const sent = await sendTelegramNotification(message);
 
-      if (sent && items.length > 0) {
+      if (sent) {
         for (const item of items) {
           if (item.main_photo) {
             const fullPhotoUrl = `https://druzhbas.live${item.main_photo}`;
-            await sendTelegramPhoto(fullPhotoUrl, `📷 ${item.name}${item.selectedColor ? ` (${item.selectedColor})` : ""} — ${item.quantity} пар`);
+            await sendTelegramPhoto(fullPhotoUrl, `📷 ${item.name} — ${item.quantity} пар`);
           }
         }
-      }
-
-      if (sent) {
         res.json({ success: true, message: "Заказ отправлен" });
       } else {
-        res.status(500).json({ success: false, message: "Ошибка отправки уведомления" });
+        res.status(500).json({ success: false, message: "Ошибка отправки в Telegram" });
       }
     } catch (error) {
-      console.error("Order error:", error);
       res.status(500).json({ message: "Ошибка сервера" });
     }
   });
 
-  // Быстрый заказ
-  app.post("/api/orders/quick", async (req, res) => {
-    try {
-      const { productName, productSku, quantity, selectedColor, customerName, customerPhone, totalPrice, productPhoto } = req.body;
-
-      const caption = `🛒 <b>БЫСТРЫЙ ЗАКАЗ!</b>\n\n` +
-        `👤 <b>Клиент:</b> ${customerName || "Не указано"}\n` +
-        `📱 <b>Телефон:</b> ${customerPhone || "Не указано"}\n\n` +
-        `📦 <b>Товар:</b> ${productName} (${productSku})\n` +
-        (selectedColor ? `🎨 <b>Цвет:</b> ${selectedColor}\n` : "") +
-        `🔢 <b>Количество:</b> ${quantity} пар\n\n` +
-        `💰 <b>Сумма:</b> ${totalPrice} сом\n\n` +
-        `📅 ${new Date().toLocaleString("ru-RU", { timeZone: "Asia/Bishkek" })}`;
-
-      let sent = false;
-      
-      if (productPhoto) {
-        const fullPhotoUrl = `https://druzhbas.live${productPhoto}`;
-        sent = await sendTelegramPhoto(fullPhotoUrl, caption);
-        if (!sent) {
-          sent = await sendTelegramNotification(caption);
-        }
-      } else {
-        sent = await sendTelegramNotification(caption);
-      }
-
-      if (sent) {
-        res.json({ success: true, message: "Заказ отправлен" });
-      } else {
-        res.status(500).json({ success: false, message: "Ошибка отправки уведомления" });
-      }
-    } catch (error) {
-      console.error("Quick order error:", error);
-      res.status(500).json({ message: "Ошибка сервера" });
-    }
-  });
-
-  // Логин админа
-  app.post("/api/admin/login", (req, res) => {
-    const { password } = req.body;
-    const adminPassword = process.env.ADMIN_PASSWORD || "druzhba2024";
-    
-    if (password === adminPassword) {
-      res.json({ success: true });
-    } else {
-      res.status(401).json({ success: false, message: "Неверный пароль" });
-    }
-  });
-
-  // Проверка здоровья и БД
-  app.get("/api/health", async (_req, res) => {
-    try {
-      // ИСПРАВЛЕНО: getAllProducts -> getProducts
-      const products = await storage.getProducts();
-      res.json({ status: "ok", db: "connected", productCount: products.length });
-    } catch (error: any) {
-      console.error("Health check failed:", error.message);
-      res.status(500).json({ status: "error", db: "disconnected", error: error.message });
-    }
-  });
-
-  // Получение товаров
   app.get("/api/products", async (_req, res) => {
     try {
-      // ИСПРАВЛЕНО: getAllProducts -> getProducts
       const products = await storage.getProducts();
       res.json(products);
     } catch (error: any) {
-      console.error("Error fetching products:", error.message);
       res.status(500).json({ message: "Ошибка загрузки товаров", error: error.message });
     }
   });
 
-  // Создание товара
   app.post("/api/products", async (req, res) => {
     try {
       const parsed = insertProductSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ message: "Неверные данные товара", errors: parsed.error.errors });
+        return res.status(400).json({ message: "Неверные данные", errors: parsed.error.errors });
       }
       const product = await storage.createProduct(parsed.data);
       res.status(201).json(product);
     } catch (error) {
-      console.error("Error creating product:", error);
       res.status(500).json({ message: "Ошибка создания товара" });
     }
   });
 
-  // Обновление товара
-  app.put("/api/products/:id", async (req, res) => {
+  app.patch("/api/products/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const parsed = insertProductSchema.partial().safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({ message: "Неверные данные товара", errors: parsed.error.errors });
-      }
-      const product = await storage.updateProduct(id, parsed.data);
+      const product = await storage.updateProduct(id, req.body);
       res.json(product);
     } catch (error) {
-      console.error("Error updating product:", error);
-      res.status(500).json({ message: "Ошибка обновления товара" });
+      res.status(500).json({ message: "Ошибка обновления" });
     }
   });
 
-  // Удаление товара
   app.delete("/api/products/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       await storage.deleteProduct(id);
       res.json({ success: true });
     } catch (error) {
-      console.error("Error deleting product:", error);
-      res.status(500).json({ message: "Ошибка удаления товара" });
+      res.status(500).json({ message: "Ошибка удаления" });
     }
   });
 
   const httpServer = createServer(app);
   return httpServer;
-          }
+      }
