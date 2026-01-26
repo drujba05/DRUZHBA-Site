@@ -64,13 +64,11 @@ async function sendTelegramPhoto(photoUrl: string, caption: string) {
   }
 }
 
-export async function registerRoutes(
-  httpServer: Server,
-  app: Express
-): Promise<Server> {
+export async function registerRoutes(app: Express): Promise<Server> {
   
   registerObjectStorageRoutes(app);
   
+  // Заказы
   app.post("/api/orders", async (req, res) => {
     try {
       const { items, customerName, customerPhone, totalPrice } = req.body;
@@ -112,6 +110,7 @@ export async function registerRoutes(
     }
   });
 
+  // Быстрый заказ
   app.post("/api/orders/quick", async (req, res) => {
     try {
       const { productName, productSku, quantity, selectedColor, customerName, customerPhone, totalPrice, productPhoto } = req.body;
@@ -148,6 +147,7 @@ export async function registerRoutes(
     }
   });
 
+  // Логин админа
   app.post("/api/admin/login", (req, res) => {
     const { password } = req.body;
     const adminPassword = process.env.ADMIN_PASSWORD || "druzhba2024";
@@ -159,9 +159,11 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/health", async (req, res) => {
+  // Проверка здоровья и БД
+  app.get("/api/health", async (_req, res) => {
     try {
-      const products = await storage.getAllProducts();
+      // ИСПРАВЛЕНО: getAllProducts -> getProducts
+      const products = await storage.getProducts();
       res.json({ status: "ok", db: "connected", productCount: products.length });
     } catch (error: any) {
       console.error("Health check failed:", error.message);
@@ -169,16 +171,19 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/products", async (req, res) => {
+  // Получение товаров
+  app.get("/api/products", async (_req, res) => {
     try {
-      const products = await storage.getAllProducts();
+      // ИСПРАВЛЕНО: getAllProducts -> getProducts
+      const products = await storage.getProducts();
       res.json(products);
     } catch (error: any) {
-      console.error("Error fetching products:", error.message, error.stack);
+      console.error("Error fetching products:", error.message);
       res.status(500).json({ message: "Ошибка загрузки товаров", error: error.message });
     }
   });
 
+  // Создание товара
   app.post("/api/products", async (req, res) => {
     try {
       const parsed = insertProductSchema.safeParse(req.body);
@@ -193,17 +198,15 @@ export async function registerRoutes(
     }
   });
 
+  // Обновление товара
   app.put("/api/products/:id", async (req, res) => {
     try {
-      const { id } = req.params;
+      const id = parseInt(req.params.id);
       const parsed = insertProductSchema.partial().safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ message: "Неверные данные товара", errors: parsed.error.errors });
       }
       const product = await storage.updateProduct(id, parsed.data);
-      if (!product) {
-        return res.status(404).json({ message: "Товар не найден" });
-      }
       res.json(product);
     } catch (error) {
       console.error("Error updating product:", error);
@@ -211,13 +214,11 @@ export async function registerRoutes(
     }
   });
 
+  // Удаление товара
   app.delete("/api/products/:id", async (req, res) => {
     try {
-      const { id } = req.params;
-      const deleted = await storage.deleteProduct(id);
-      if (!deleted) {
-        return res.status(404).json({ message: "Товар не найден" });
-      }
+      const id = parseInt(req.params.id);
+      await storage.deleteProduct(id);
       res.json({ success: true });
     } catch (error) {
       console.error("Error deleting product:", error);
@@ -225,5 +226,6 @@ export async function registerRoutes(
     }
   });
 
+  const httpServer = createServer(app);
   return httpServer;
-}
+          }
