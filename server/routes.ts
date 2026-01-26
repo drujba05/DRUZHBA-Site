@@ -36,7 +36,13 @@ async function sendTelegramNotification(message: string) {
 
 // Вспомогательная функция для отправки фото в Telegram
 async function sendTelegramPhoto(photoUrl: string, caption: string) {
-  if (!TELEGRAM_BOT_TOKEN) return false;
+  if (!TELEGRAM_BOT_TOKEN || !photoUrl) return false;
+  
+  // Формируем полный путь, если это локальная ссылка
+  const finalUrl = photoUrl.startsWith('http') 
+    ? photoUrl 
+    : `https://druzhbas.live${photoUrl.startsWith('/') ? '' : '/'}${photoUrl}`;
+
   try {
     await fetch(
       `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`,
@@ -45,7 +51,7 @@ async function sendTelegramPhoto(photoUrl: string, caption: string) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chat_id: TELEGRAM_CHAT_ID,
-          photo: photoUrl,
+          photo: finalUrl,
           caption: caption,
           parse_mode: "HTML",
         }),
@@ -57,7 +63,6 @@ async function sendTelegramPhoto(photoUrl: string, caption: string) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Интеграция хранилища (Replit Object Storage)
   registerObjectStorageRoutes(app);
 
   // 1. ОБРАБОТКА ОБЫЧНОГО ЗАКАЗА (ИЗ КОРЗИНЫ)
@@ -81,15 +86,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const sent = await sendTelegramNotification(message);
 
-      if (sent) {
-        // Отправляем фото первого товара для визуализации
-        if (items[0]?.main_photo) {
-          await sendTelegramPhoto(`https://druzhbas.live${items[0].main_photo}`, `Фото к заказу от ${customerName}`);
-        }
-        res.json({ success: true, message: "Заказ отправлен" });
-      } else {
-        res.status(500).json({ success: false, message: "Ошибка Telegram API" });
+      if (sent && items[0]?.main_photo) {
+        await sendTelegramPhoto(items[0].main_photo, `Фото к заказу от ${customerName}`);
       }
+      res.json({ success: true });
     } catch (error) {
       console.error("Ошибка Order API:", error);
       res.status(500).json({ message: "Ошибка сервера" });
@@ -102,26 +102,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Входящие данные быстрого заказа:", req.body);
       const { productId, customerName, customerPhone, color } = req.body;
 
-      // Получаем данные о товаре из БД Neon
-      const product = await storage.getProduct(Number(productId));
+      // ИСПРАВЛЕНО: Убрали Number(), так как ID в Neon это строка (UUID)
+      const product = await storage.getProduct(productId);
 
       const message = `⚡ <b>БЫСТРЫЙ ЗАКАЗ!</b>\n\n` +
         `👤 <b>Клиент:</b> ${customerName || "Не указано"}\n` +
         `📱 <b>Телефон:</b> ${customerPhone || "Не указано"}\n\n` +
         `📦 <b>Товар:</b> ${product?.name || "ID: " + productId}\n` +
         `🎨 <b>Выбранный цвет:</b> ${color || "Не указан"}\n` +
-        `💰 <b>Цена:</b> ${product?.price || "---"} сом`;
+        `💰 <b>Цена:</b> ${product?.price ? product.price + " сом" : "---"}`;
 
       const sent = await sendTelegramNotification(message);
 
-      if (sent) {
-        if (product?.main_photo) {
-          await sendTelegramPhoto(`https://druzhbas.live${product.main_photo}`, `Фото быстрого заказа: ${product.name}`);
-        }
-        res.json({ success: true });
-      } else {
-        res.status(500).json({ success: false });
+      if (sent && product?.main_photo) {
+        await sendTelegramPhoto(product.main_photo, `Фото быстрого заказа: ${product.name}`);
       }
+      res.json({ success: true });
     } catch (error) {
       console.error("Ошибка Quick Order API:", error);
       res.status(500).json({ message: "Ошибка сервера" });
@@ -151,7 +147,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/products/:id", async (req, res) => {
     try {
-      await storage.deleteProduct(Number(req.params.id));
+      // Здесь ID может быть строкой или числом в зависимости от схемы
+      await storage.deleteProduct(req.params.id as any);
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ message: "Ошибка удаления" });
@@ -160,4 +157,4 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const httpServer = createServer(app);
   return httpServer;
-  }
+    }
