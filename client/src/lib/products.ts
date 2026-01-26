@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export interface Product {
-  id: string | number; // Разрешаем и строку, и число
+  id: string | number;
   name: string;
   sku: string;
   category: string;
@@ -10,10 +10,10 @@ export interface Product {
   sizes: string;
   colors: string;
   status: "В наличии" | "Нет в наличии" | "Ожидается поступление";
-  season?: "Зима" | "Лето" | "Все сезоны";
+  season?: "Зима" | "Лето" | "Демисезон" | "Все сезоны"; // Добавили Демисезон
   gender?: "Универсальные" | "Женские" | "Мужские" | "Детские";
   min_order_quantity: number;
-  pairs_per_box?: number;
+  pairs_per_box?: string; // Добавили информацию о коробе
   main_photo: string;
   additional_photos: string[];
   comment?: string | null;
@@ -23,7 +23,7 @@ export interface Product {
 
 async function fetchProducts(): Promise<Product[]> {
   const res = await fetch("/api/products");
-  if (!res.ok) throw new Error(`Ошибка загрузки: ${res.status}`);
+  if (!res.ok) throw new Error("Failed to fetch");
   return res.json();
 }
 
@@ -33,27 +33,17 @@ async function createProduct(product: Omit<Product, "id">): Promise<Product> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(product),
   });
-  if (!res.ok) throw new Error("Ошибка при создании товара");
+  if (!res.ok) throw new Error("Create failed");
   return res.json();
 }
 
-// Изменили id: string | number для надежности
 async function updateProductApi(id: string | number, product: Partial<Product>): Promise<Product> {
   const res = await fetch(`/api/products/${id}`, {
-    method: "PATCH", // Часто серверы используют PATCH для частичного обновления, проверим на всякий случай PUT если не сработает
+    method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(product),
   });
-  if (!res.ok) {
-     // Если PATCH не сработал, пробуем старый добрый PUT
-     const resPut = await fetch(`/api/products/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(product),
-     });
-     if (!resPut.ok) throw new Error("Ошибка при обновлении товара");
-     return resPut.json();
-  }
+  if (!res.ok) throw new Error("Update failed");
   return res.json();
 }
 
@@ -61,12 +51,12 @@ async function deleteProductApi(id: string | number): Promise<void> {
   const res = await fetch(`/api/products/${id}`, {
     method: "DELETE",
   });
-  if (!res.ok) throw new Error("Ошибка при удалении");
+  if (!res.ok) throw new Error("Delete failed");
 }
 
 export function useProducts() {
   const queryClient = useQueryClient();
-  const QUERY_KEY = ["/api/products"]; // Используем стандартный ключ
+  const QUERY_KEY = ["/api/products"];
 
   const { data: products = [], isLoading, error } = useQuery({
     queryKey: QUERY_KEY,
@@ -75,34 +65,26 @@ export function useProducts() {
 
   const addMutation = useMutation({
     mutationFn: createProduct,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, product }: { id: string | number; product: Partial<Product> }) => 
       updateProductApi(id, product),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteProductApi,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
   });
 
   return { 
     products, 
     addProduct: addMutation.mutateAsync,
-    // Приводим ID к числу или строке автоматически
-    updateProduct: (id: string | number, product: Partial<Product>) => 
-      updateMutation.mutateAsync({ id, product }),
+    updateProduct: (id: string | number, product: Partial<Product>) => updateMutation.mutateAsync({ id, product }),
     deleteProduct: deleteMutation.mutateAsync,
     isLoading,
     error,
   };
-}
+                                   }
