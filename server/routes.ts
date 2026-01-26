@@ -3,10 +3,32 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertProductSchema } from "@shared/schema";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
+import { v2 as cloudinary } from 'cloudinary';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import multer from 'multer';
+
+// 1. КОНФИГУРАЦИЯ CLOUDINARY
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// 2. НАСТРОЙКА ХРАНИЛИЩА MULTER ДЛЯ CLOUDINARY
+const cloudinaryStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'products',
+    allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
+  } as any,
+});
+
+const upload = multer({ storage: cloudinaryStorage });
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = "5356415783";
 
+// Вспомогательная функция для отправки текста в Telegram
 async function sendTelegramNotification(message: string) {
   if (!TELEGRAM_BOT_TOKEN) return false;
   try {
@@ -22,14 +44,18 @@ async function sendTelegramNotification(message: string) {
         }),
       }
     );
-    return (await response.json()).ok;
+    const result = await response.json();
+    return result.ok;
   } catch (error) {
     return false;
   }
 }
 
+// Вспомогательная функция для отправки фото в Telegram
 async function sendTelegramPhoto(photoUrl: string, caption: string) {
   if (!TELEGRAM_BOT_TOKEN || !photoUrl) return false;
+  
+  // Cloudinary выдает полные ссылки, поэтому просто используем photoUrl
   const finalUrl = photoUrl.startsWith('http') 
     ? photoUrl 
     : `https://druzhbas.live${photoUrl.startsWith('/') ? '' : '/'}${photoUrl}`;
@@ -52,6 +78,18 @@ async function sendTelegramPhoto(photoUrl: string, caption: string) {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   registerObjectStorageRoutes(app);
+
+  // --- РОУТ ДЛЯ ЗАГРУЗКИ ФОТО В CLOUDINARY ---
+  app.post("/api/upload", upload.single("file"), (req: any, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ message: "Файл не загружен" });
+      // Возвращаем прямую ссылку на фото в облаке
+      res.json({ url: req.file.path });
+    } catch (error) {
+      console.error("Upload Error:", error);
+      res.status(500).json({ message: "Ошибка при загрузке в облако" });
+    }
+  });
 
   // 1. КОРЗИНА
   app.post("/api/orders", async (req, res) => {
@@ -77,13 +115,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // 2. БЫСТРЫЙ ЗАКАЗ (ИСПРАВЛЕННЫЙ)
+  // 2. БЫСТРЫЙ ЗАКАЗ
   app.post("/api/quick-order", async (req, res) => {
     try {
       const { productId, customerName, customerPhone, color, quantity } = req.body;
       const product = await storage.getProduct(productId);
       
-      // Считаем сумму: цена за шт * количество
       const pricePerUnit = Number(product?.price) || 0;
       const totalAmount = pricePerUnit * (Number(quantity) || 1);
 
@@ -107,7 +144,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Остальные API (Products)
+  // 3. ТОВАРЫ (API)
   app.get("/api/products", async (_req, res) => {
     const allProducts = await storage.getProducts();
     res.json(allProducts);
@@ -125,4 +162,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const httpServer = createServer(app);
   return httpServer;
-}
+                                                  }
+        
