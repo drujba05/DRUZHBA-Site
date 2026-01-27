@@ -48,7 +48,7 @@ export default function Catalog() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <Input 
                 placeholder="Поиск по названию..." 
-                className="pl-12 h-12 rounded-2xl bg-slate-50 border-none focus:ring-2 focus:ring-blue-100"
+                className="pl-12 h-12 rounded-2xl bg-slate-50 border-none font-bold focus:ring-2 focus:ring-blue-100"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -114,7 +114,7 @@ export default function Catalog() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
             <div className="space-y-6">
               <h2 className="text-2xl font-black text-white uppercase tracking-tighter">DRUZHBA</h2>
-              <p className="text-slate-400 leading-relaxed text-sm">Ваш надежный партнер на рынке «Дордой». Высокое качество и лучшие цены напрямую от производителя.</p>
+              <p className="text-slate-400 leading-relaxed text-sm">Ваш надежный партнер на рынке «Дордой». Высокое качество и лучшие оптовые цены напрямую от производителя.</p>
               <div className="flex gap-3">
                 <div className="bg-white/5 p-3 rounded-2xl border border-white/10 flex items-center gap-2">
                   <Star className="text-yellow-500 h-4 w-4" />
@@ -128,38 +128,36 @@ export default function Catalog() {
             </div>
 
             <div className="space-y-6">
-              <h3 className="text-white font-black uppercase text-[10px] tracking-[0.3em] opacity-50">Контакты</h3>
-              <div className="space-y-5">
-                {/* Исправленный Телефон */}
-                <div className="flex items-center gap-4 group">
-                  <div className="bg-blue-600 p-3 rounded-2xl shadow-lg shadow-blue-900/40 transition-transform group-hover:scale-110">
+              <h3 className="text-white font-black uppercase text-[10px] tracking-[0.3em] opacity-50">Наши контакты</h3>
+              <div className="space-y-4">
+                {/* ТЕЛЕФОН - ЯРКО СИНИЙ */}
+                <a href="tel:+996557650131" className="flex items-center gap-4 p-3 bg-blue-600 hover:bg-blue-500 rounded-2xl transition-all shadow-lg group">
+                  <div className="bg-white/20 p-2 rounded-xl group-hover:scale-110 transition-transform">
                     <Phone className="h-5 w-5 text-white" />
                   </div>
-                  <a href="tel:+996557650131" className="text-lg font-black text-white bg-white/5 px-4 py-2 rounded-xl border border-white/10 hover:bg-blue-600/20 hover:border-blue-500/50 transition-all">
-                    +996 557 650 131
-                  </a>
-                </div>
-                {/* Исправленный Telegram */}
-                <div className="flex items-center gap-4 group">
-                  <div className="bg-sky-500 p-3 rounded-2xl shadow-lg shadow-sky-900/40 transition-transform group-hover:scale-110">
+                  <span className="text-lg font-black text-white">+996 557 650 131</span>
+                </a>
+
+                {/* TELEGRAM - ЯРКО ГОЛУБОЙ */}
+                <a href="https://t.me/DRUZHBAA_Bot" target="_blank" className="flex items-center gap-4 p-3 bg-sky-500 hover:bg-sky-400 rounded-2xl transition-all shadow-lg group">
+                  <div className="bg-white/20 p-2 rounded-xl group-hover:scale-110 transition-transform">
                     <MessageCircle className="h-5 w-5 text-white" />
                   </div>
-                  <a href="https://t.me/DRUZHBAA_Bot" target="_blank" className="text-lg font-black text-white bg-white/5 px-4 py-2 rounded-xl border border-white/10 hover:bg-sky-500/20 hover:border-sky-400/50 transition-all">
-                    Telegram Bot
-                  </a>
-                </div>
-                <div className="flex items-start gap-4">
-                  <div className="bg-slate-800 p-3 rounded-2xl">
+                  <span className="text-lg font-black text-white">Telegram Bot</span>
+                </a>
+
+                <div className="flex items-start gap-4 p-3 bg-white/5 rounded-2xl border border-white/10">
+                  <div className="bg-slate-800 p-2 rounded-xl">
                     <MapPin className="h-5 w-5 text-slate-400" />
                   </div>
-                  <p className="text-sm font-medium pt-1 text-slate-200">Рынок "Дордой", Оберон Форт,<br />30 проход, 2 контейнер</p>
+                  <p className="text-sm font-medium text-slate-200">Рынок "Дордой", Оберон Форт,<br />30 проход, 2 контейнер</p>
                 </div>
               </div>
             </div>
 
             <div className="space-y-6">
               <h3 className="text-white font-black uppercase text-[10px] tracking-[0.3em] opacity-50">Режим работы</h3>
-              <div className="bg-white/5 p-6 rounded-[2.5rem] border border-white/10 relative overflow-hidden">
+              <div className="bg-white/5 p-6 rounded-[2.5rem] border border-white/10">
                 <div className="flex items-center gap-4 mb-4">
                   <Clock className="h-6 w-6 text-blue-400" />
                   <span className="text-2xl font-black text-white tracking-tighter">08:00 – 17:00</span>
@@ -172,7 +170,6 @@ export default function Catalog() {
               </div>
             </div>
           </div>
-          
           <div className="mt-16 pt-8 border-t border-white/5 text-center">
             <p className="text-[10px] font-black opacity-20 uppercase tracking-[0.5em] text-white">
               © 2026 DRUZHBA • MADE WITH PASSION
@@ -182,4 +179,4 @@ export default function Catalog() {
       </footer>
     </div>
   );
-}
+                                                                                                  }
