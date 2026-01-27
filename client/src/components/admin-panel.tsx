@@ -6,6 +6,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea"; // Добавили импорт
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Pencil, Trash2, X, ImagePlus, Loader2, Search, ShieldCheck, Upload } from "lucide-react";
@@ -16,10 +17,11 @@ const productSchema = z.object({
   name: z.string().min(1, "Введите название"),
   sku: z.string().optional().default(""),
   category: z.string().optional().default("Обувь"),
+  description: z.string().optional().default(""), // Добавили описание
   price: z.coerce.number().min(1, "Укажите цену"),
   sizes: z.string().min(1, "Укажите размеры"),
   colors: z.string().min(1, "Укажите цвета"),
-  status: z.enum(["В наличии", "Нет в наличии", "Ожидается поступление"]).default("В наличии"),
+  status: z.string().default("В наличии"),
   season: z.string().default("Все сезоны"),
   gender: z.string().default("Универсальные"),
   min_order_quantity: z.coerce.number().min(1).default(6),
@@ -40,7 +42,7 @@ export function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeletePr
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
     defaultValues: {
-      name: "", sku: "", category: "Обувь", price: 0, sizes: "36-41", colors: "Черный",
+      name: "", sku: "", category: "Обувь", description: "", price: 0, sizes: "36-41", colors: "Черный",
       status: "В наличии", season: "Все сезоны", gender: "Универсальные",
       min_order_quantity: 6, pairs_per_box: "", is_bestseller: false, is_new: true,
     },
@@ -50,34 +52,29 @@ export function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeletePr
     if (editingId) {
       const p = products.find((i: any) => i.id == editingId);
       if (p) {
-        form.reset({ ...p, sku: p.sku || "", pairs_per_box: p.pairs_per_box || "" });
+        form.reset({ 
+          ...p, 
+          sku: p.sku || "", 
+          pairs_per_box: p.pairs_per_box || "",
+          description: p.description || "" 
+        });
         setPreviews([p.main_photo, ...(p.additional_photos || [])].filter(Boolean));
       }
     }
   }, [editingId, products, form]);
 
-  // --- ИСПРАВЛЕННАЯ ЗАГРУЗКА В CLOUDINARY ---
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
-
     setUploading(true);
     try {
       for (const file of files) {
         const formData = new FormData();
         formData.append("file", file);
-
-        const res = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
-
+        const res = await fetch("/api/upload", { method: "POST", body: formData });
         if (!res.ok) throw new Error("Ошибка сервера");
-        
         const data = await res.json();
-        if (data.url) {
-          setPreviews(prev => [...prev, data.url]);
-        }
+        if (data.url) setPreviews(prev => [...prev, data.url]);
       }
       toast({ title: "Фото загружены" });
     } catch (err) {
@@ -94,9 +91,7 @@ export function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeletePr
         ...vals,
         main_photo: previews[0] || "",
         additional_photos: previews.slice(1),
-        description: "", 
       };
-
       if (editingId) {
         await onUpdateProduct(editingId, payload);
         toast({ title: "Товар обновлен" });
@@ -104,7 +99,6 @@ export function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeletePr
         await onAddProduct(payload);
         toast({ title: "Товар успешно добавлен" });
       }
-      
       setEditingId(null);
       setPreviews([]);
       form.reset();
@@ -146,9 +140,11 @@ export function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeletePr
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                
                 <FormField control={form.control} name="name" render={({field}) => (
                   <FormItem><FormLabel>Название *</FormLabel><FormControl><Input {...field} className="rounded-xl bg-slate-50 border-none"/></FormControl></FormItem>
                 )}/>
+
                 <div className="grid grid-cols-2 gap-4">
                   <FormField control={form.control} name="price" render={({field}) => (
                     <FormItem><FormLabel>Цена (пара) *</FormLabel><FormControl><Input type="number" {...field} className="rounded-xl bg-slate-50 border-none"/></FormControl></FormItem>
@@ -157,6 +153,7 @@ export function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeletePr
                     <FormItem><FormLabel>В коробе</FormLabel><FormControl><Input placeholder="12 пар" {...field} className="rounded-xl bg-slate-50 border-none"/></FormControl></FormItem>
                   )}/>
                 </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <FormField control={form.control} name="sizes" render={({field}) => (
                     <FormItem><FormLabel>Размеры *</FormLabel><FormControl><Input placeholder="36-41" {...field} className="rounded-xl bg-slate-50 border-none"/></FormControl></FormItem>
@@ -165,6 +162,54 @@ export function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeletePr
                     <FormItem><FormLabel>Цвета *</FormLabel><FormControl><Input placeholder="Черный, Синий" {...field} className="rounded-xl bg-slate-50 border-none"/></FormControl></FormItem>
                   )}/>
                 </div>
+
+                {/* НОВЫЕ ПОЛЯ: СЕЗОН, ПОЛ, СТАТУС */}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField control={form.control} name="season" render={({field}) => (
+                    <FormItem><FormLabel>Сезон</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger className="rounded-xl bg-slate-50 border-none"><SelectValue/></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value="Зима">Зима</SelectItem>
+                          <SelectItem value="Лето">Лето</SelectItem>
+                          <SelectItem value="Демисезон">Демисезон</SelectItem>
+                          <SelectItem value="Все сезоны">Все сезоны</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}/>
+                  <FormField control={form.control} name="gender" render={({field}) => (
+                    <FormItem><FormLabel>Для кого</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger className="rounded-xl bg-slate-50 border-none"><SelectValue/></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value="Мужские">Мужские</SelectItem>
+                          <SelectItem value="Женские">Женские</SelectItem>
+                          <SelectItem value="Детские">Детские</SelectItem>
+                          <SelectItem value="Универсальные">Универсальные</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}/>
+                </div>
+
+                <FormField control={form.control} name="status" render={({field}) => (
+                  <FormItem><FormLabel>Статус наличия</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl><SelectTrigger className="rounded-xl bg-slate-50 border-none"><SelectValue/></SelectTrigger></FormControl>
+                      <SelectContent>
+                        <SelectItem value="В наличии">В наличии</SelectItem>
+                        <SelectItem value="Ожидается поступление">Ожидается поступление</SelectItem>
+                        <SelectItem value="Нет в наличии">Нет в наличии</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}/>
+
+                <FormField control={form.control} name="description" render={({field}) => (
+                  <FormItem><FormLabel>Описание</FormLabel><FormControl><Textarea {...field} className="rounded-xl bg-slate-50 border-none resize-none" placeholder="Например: Маломерят на размер..." /></FormControl></FormItem>
+                )}/>
+
                 <div className="flex gap-4 p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
                   <FormField control={form.control} name="is_bestseller" render={({field}) => (
                     <FormItem className="flex items-center space-x-2 space-y-0">
@@ -179,6 +224,7 @@ export function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeletePr
                     </FormItem>
                   )}/>
                 </div>
+
                 <div className="space-y-3">
                   <Label className="text-slate-400 uppercase text-[10px] font-black tracking-widest ml-1">Фотографии ({previews.length})</Label>
                   <div className="flex flex-wrap gap-3">
@@ -189,17 +235,13 @@ export function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeletePr
                         {i === 0 && <div className="absolute bottom-0 inset-x-0 bg-blue-600 text-[8px] text-white text-center font-bold py-0.5">ГЛАВНОЕ</div>}
                       </div>
                     ))}
-                    <button 
-                      type="button" 
-                      disabled={uploading}
-                      className="w-20 h-20 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center text-slate-400 hover:bg-slate-50 transition-colors"
-                      onClick={() => fileRef.current?.click()}
-                    >
+                    <button type="button" disabled={uploading} className="w-20 h-20 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center text-slate-400 hover:bg-slate-50 transition-colors" onClick={() => fileRef.current?.click()}>
                       {uploading ? <Loader2 className="animate-spin text-blue-500"/> : <><Upload size={20} className="mb-1"/><span className="text-[8px] font-bold uppercase">Загрузить</span></>}
                     </button>
                   </div>
                   <input type="file" ref={fileRef} className="hidden" multiple accept="image/*" onChange={onFile}/>
                 </div>
+
                 <Button type="submit" disabled={uploading} className="w-full bg-blue-600 hover:bg-blue-700 h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-100 transition-all">
                   {editingId ? "Сохранить изменения" : "Опубликовать товар"}
                 </Button>
@@ -243,7 +285,10 @@ export function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeletePr
                     <img src={p.main_photo} className="w-14 h-14 object-cover rounded-2xl border-2 border-slate-50 shadow-sm"/>
                     <div className="overflow-hidden">
                       <p className="text-[11px] font-black text-slate-900 truncate w-32 uppercase tracking-tighter">{p.name}</p>
-                      <p className="text-[12px] font-black text-blue-600">{p.price} сом</p>
+                      <div className="flex gap-2">
+                        <p className="text-[12px] font-black text-blue-600">{p.price} сом</p>
+                        <p className="text-[10px] text-slate-400">{p.season}</p>
+                      </div>
                     </div>
                   </div>
                   <div className="flex gap-1">
@@ -258,5 +303,4 @@ export function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeletePr
       </div>
     </div>
   );
-                               }
-                 
+                        }
