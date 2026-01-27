@@ -15,6 +15,7 @@ import {
   Sparkles,
   ArrowRight,
   LayoutGrid,
+  Home as HomeIcon, // Добавил иконку
 } from "lucide-react";
 import { CartDrawer } from "@/components/cart-drawer";
 import heroImage from "@assets/generated_images/modern_aesthetic_wholesale_footwear_display_background.png";
@@ -34,16 +35,18 @@ export default function Home() {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link
             href="/"
-            className="font-heading font-bold text-2xl tracking-tighter"
+            className="font-heading font-bold text-2xl tracking-tighter flex items-center gap-2"
             style={{
               color: "#ffffff",
               textShadow: "0 1px 2px rgba(0,0,0,0.3)",
             }}
           >
+            <HomeIcon size={20} />
             DRUZHBA
           </Link>
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-300">
+              <Link href="/" className="hover:text-white transition-colors">Главная</Link>
               <Link href="/about" className="hover:text-white transition-colors">О нас</Link>
               <Link href="/delivery" className="hover:text-white transition-colors">Доставка и оплата</Link>
               <Link href="/returns" className="hover:text-white transition-colors">Возврат</Link>
@@ -72,7 +75,6 @@ export default function Home() {
               />
             </div>
 
-            {/* ИСПРАВЛЕННАЯ ПЛАШКА: ЯРКО-ГОЛУБАЯ И ЗАМЕТНАЯ НА ПК */}
             <span className="inline-block py-2 px-4 rounded-full bg-sky-500 text-white text-xs md:text-sm font-black tracking-widest mb-4 border border-sky-400 shadow-lg shadow-sky-500/20 uppercase">
               МЫ ЗАНИМАЕМСЯ СОБСТВЕННЫМ ПРОИЗВОДСТВОМ
             </span>
@@ -202,7 +204,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ПОЛНЫЙ ФУТЕР СО ВСЕЙ ИНФОРМАЦИЕЙ */}
       <footer className="bg-gray-900 text-gray-300 py-12">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -215,6 +216,7 @@ export default function Home() {
             <div>
               <h4 className="font-bold text-white mb-4">Информация</h4>
               <ul className="space-y-2 text-sm text-gray-400">
+                <li><Link href="/" className="hover:text-white transition-colors">Главная</Link></li>
                 <li><Link href="/about" className="hover:text-white transition-colors">О нас</Link></li>
                 <li><Link href="/delivery" className="hover:text-white transition-colors">Доставка и оплата</Link></li>
                 <li><Link href="/returns" className="hover:text-white transition-colors">Возврат товара</Link></li>
@@ -249,6 +251,17 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* ПЛАВАЮЩАЯ КНОПКА "НА ГЛАВНУЮ" (СКРОЛЛ ВВЕРХ) */}
+      <div className="fixed bottom-6 right-6 z-[60]">
+        <Button
+          size="icon"
+          className="w-12 h-12 rounded-full bg-white/90 backdrop-blur-md border border-slate-200 shadow-2xl text-blue-600 hover:bg-blue-600 hover:text-white transition-all duration-300 active:scale-90"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        >
+          <HomeIcon size={24} />
+        </Button>
+      </div>
     </div>
   );
-                  }
+}
