@@ -8,7 +8,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
-// Используем any для пропсов, чтобы избежать ошибок типизации при сборке, если lib/products изменен
 export function ProductCard({ product }: { product: any }) {
   const { addItem } = useCart();
   const { toast } = useToast();
@@ -72,26 +71,16 @@ export function ProductCard({ product }: { product: any }) {
               </div>
             )
           });
-          setName("");
-          setPhone("");
-        } else {
-          throw new Error();
+          setName(""); setPhone("");
         }
       } catch (error) {
-        toast({ 
-          variant: "destructive",
-          className: "rounded-2xl shadow-xl font-sans",
-          title: "ОШИБКА ОТПРАВКИ", 
-          description: "Проверьте интернет и попробуйте снова." 
-        });
+        toast({ variant: "destructive", title: "ОШИБКА ОТПРАВКИ" });
       }
     }
   };
 
   return (
     <Card className="group overflow-hidden border-none shadow-sm hover:shadow-2xl transition-all duration-500 rounded-[2.5rem] bg-[#FDFDFD] flex flex-col h-full font-sans">
-      
-      {/* ФОТО СЕКЦИЯ */}
       <div className="relative aspect-[4/5] overflow-hidden m-2 rounded-[2rem] bg-slate-100 shadow-inner">
         <img
           src={product.main_photo}
@@ -106,7 +95,7 @@ export function ProductCard({ product }: { product: any }) {
         </div>
         <Button 
           variant="ghost" size="icon" 
-          className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-md rounded-full shadow-xl hover:bg-white"
+          className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-md rounded-full shadow-xl"
           onClick={() => { setCurrentPhotoIdx(0); setIsGalleryOpen(true); }}
         >
           <Maximize2 size={18} className="text-slate-900" />
@@ -117,31 +106,18 @@ export function ProductCard({ product }: { product: any }) {
         <h3 className="font-black text-slate-900 text-[15px] uppercase mb-4 leading-tight min-h-[40px] tracking-tight">{product.name}</h3>
 
         <div className="space-y-2 mb-4">
-          {/* ХАРАКТЕРИСТИКИ */}
-          {[
-            { Icon: Users, label: "Для кого:", value: product.gender || "Универсальные" },
-            { Icon: Palette, label: "Цвета:", value: product.colors || "Ассортимент" },
-            { Icon: Ruler, label: "Размеры:", value: product.sizes },
-            { Icon: Box, label: "В коробе:", value: `${product.pairs_per_box || product.pairs_in_box || "8"} пар` }
-          ].map((item, idx) => (
-            <div key={idx} className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100/50">
-              <item.Icon size={14} className="text-blue-600" />
-              <div className="flex flex-col">
-                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{item.label}</span>
-                <span className="text-[10px] font-bold text-slate-800 uppercase line-clamp-1">{item.value}</span>
-              </div>
-            </div>
-          ))}
-
-          {product.description && (
-            <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100/50 mt-2">
-              <AlignLeft size={14} className="text-slate-400 mt-0.5" />
-              <div className="flex flex-col">
-                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Описание:</span>
-                <p className="text-[10px] text-slate-600 leading-relaxed font-bold">{product.description}</p>
-              </div>
-            </div>
-          )}
+          <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100/50">
+            <Users size={14} className="text-blue-600" />
+            <span className="text-[10px] font-bold text-slate-800 uppercase">{product.gender || "Универсальные"}</span>
+          </div>
+          <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100/50">
+            <Ruler size={14} className="text-blue-600" />
+            <span className="text-[10px] font-bold text-slate-800 uppercase">{product.sizes}</span>
+          </div>
+          <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100/50">
+            <Box size={14} className="text-blue-600" />
+            <span className="text-[10px] font-bold text-slate-800 uppercase">{product.pairs_per_box || product.pairs_in_box || "8"} пар</span>
+          </div>
         </div>
 
         <div className="mt-auto pt-2 mb-4 border-t border-slate-100">
@@ -155,19 +131,11 @@ export function ProductCard({ product }: { product: any }) {
         </div>
 
         <div className="flex flex-col gap-2">
-          <Button 
-            onClick={() => openModal("quick")}
-            className="w-full bg-slate-900 hover:bg-black text-white rounded-2xl h-14 text-[11px] font-black uppercase tracking-[0.2em] shadow-lg transition-all active:scale-95"
-          >
+          <Button onClick={() => openModal("quick")} className="w-full bg-slate-900 hover:bg-black text-white rounded-2xl h-14 text-[11px] font-black uppercase tracking-[0.2em] shadow-lg transition-all active:scale-95">
             Купить сейчас
           </Button>
-          <Button 
-            variant="outline"
-            onClick={() => openModal("cart")}
-            className="w-full border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-600 hover:text-blue-600 rounded-2xl h-14 text-[11px] font-bold uppercase tracking-widest transition-all"
-          >
-            <ShoppingCart size={16} className="mr-2" />
-            В корзину
+          <Button variant="outline" onClick={() => openModal("cart")} className="w-full border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-600 hover:text-blue-600 rounded-2xl h-14 text-[11px] font-bold uppercase tracking-widest transition-all">
+            <ShoppingCart size={16} className="mr-2" /> В корзину
           </Button>
         </div>
       </CardContent>
@@ -189,30 +157,18 @@ export function ProductCard({ product }: { product: any }) {
       {/* МОДАЛКА ЗАКАЗА */}
       <Dialog open={isOrderOpen} onOpenChange={setIsOrderOpen}>
         <DialogContent className="rounded-[3rem] p-8 max-w-[420px] border-none shadow-2xl bg-white font-sans">
-          <DialogHeader>
-            <DialogTitle className="font-black uppercase text-center text-2xl tracking-tighter text-slate-900">
-              {mode === "quick" ? "⚡ БЫСТРЫЙ ЗАКАЗ" : "🛒 В КОРЗИНУ"}
-            </DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle className="font-black uppercase text-center text-2xl tracking-tighter text-slate-900">{mode === "quick" ? "⚡ БЫСТРЫЙ ЗАКАЗ" : "🛒 В КОРЗИНУ"}</DialogTitle></DialogHeader>
           <div className="space-y-6 pt-6">
-            
             {colorOptions.length > 0 && (
               <div className="space-y-3">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Выберите цвет:</span>
                 <div className="flex flex-wrap gap-2">
                   {colorOptions.map((c: string) => (
-                    <button 
-                      key={c}
-                      onClick={() => setSelectedColor(c)}
-                      className={`px-4 py-2 text-[11px] font-black rounded-2xl border transition-all ${selectedColor === c ? 'bg-blue-600 text-white border-blue-600 shadow-lg' : 'bg-slate-50 text-slate-500 border-slate-100 hover:border-blue-200'}`}
-                    >
-                      {c}
-                    </button>
+                    <button key={c} onClick={() => setSelectedColor(c)} className={`px-4 py-2 text-[11px] font-black rounded-2xl border transition-all ${selectedColor === c ? 'bg-blue-600 text-white border-blue-600 shadow-lg' : 'bg-slate-50 text-slate-500 border-slate-100 hover:border-blue-200'}`}>{c}</button>
                   ))}
                 </div>
               </div>
             )}
-
             <div className="flex flex-col items-center p-6 bg-blue-50/50 rounded-[2.5rem] border border-blue-100/50">
               <span className="text-[10px] font-black text-blue-500 uppercase mb-4 tracking-[0.2em]">Количество (шаг 6)</span>
               <div className="flex items-center gap-10">
@@ -221,14 +177,12 @@ export function ProductCard({ product }: { product: any }) {
                 <Button variant="ghost" className="h-12 w-12 rounded-full bg-white shadow-md" onClick={() => setTotalPairs(totalPairs + 6)}><Plus size={20} className="text-blue-600"/></Button>
               </div>
             </div>
-
             {mode === "quick" && (
               <div className="space-y-3">
                 <Input placeholder="Ваше имя" className="h-14 rounded-2xl bg-slate-50 border-none px-6 font-bold focus:ring-2 focus:ring-blue-100" value={name} onChange={e => setName(e.target.value)} />
                 <Input placeholder="Номер телефона" className="h-14 rounded-2xl bg-slate-50 border-none px-6 font-bold focus:ring-2 focus:ring-blue-100" value={phone} onChange={e => setPhone(e.target.value)} />
               </div>
             )}
-            
             <Button onClick={handleAction} className="w-full h-16 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase text-[12px] tracking-[0.2em] shadow-xl shadow-blue-100">
               {mode === "quick" ? "Подтвердить" : "Добавить"} — {(product.price * totalPairs).toLocaleString()} сом
             </Button>
@@ -237,4 +191,4 @@ export function ProductCard({ product }: { product: any }) {
       </Dialog>
     </Card>
   );
-      }
+}
