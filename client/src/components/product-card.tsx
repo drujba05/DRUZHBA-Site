@@ -12,6 +12,9 @@ export function ProductCard({ product }: { product: any }) {
   const { addItem } = useCart();
   const { toast } = useToast();
   
+  // ИСПОЛЬЗУЕМ pairs_per_box ИЗ СЕРВЕРА (ПРЕВРАЩАЕМ В ЧИСЛО)
+  const packSize = parseInt(product.pairs_per_box) || 6;
+
   const [isOrderOpen, setIsOrderOpen] = useState(false);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [mode, setMode] = useState<"quick" | "cart">("quick");
@@ -19,7 +22,7 @@ export function ProductCard({ product }: { product: any }) {
   const allPhotos = [product.main_photo, ...(product.additional_photos || [])].filter(Boolean);
   const [currentPhotoIdx, setCurrentPhotoIdx] = useState(0);
 
-  const [totalPairs, setTotalPairs] = useState(6);
+  const [totalPairs, setTotalPairs] = useState(packSize);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
 
@@ -30,10 +33,11 @@ export function ProductCard({ product }: { product: any }) {
   const [selectedColor, setSelectedColor] = useState(colorOptions[0] || "Стандарт");
 
   useEffect(() => {
+    setTotalPairs(packSize);
     if (colorOptions.length > 0) {
       setSelectedColor(colorOptions[0]);
     }
-  }, [product.id]);
+  }, [product.id, packSize]);
 
   const openModal = (targetMode: "quick" | "cart") => {
     setMode(targetMode);
@@ -119,32 +123,21 @@ export function ProductCard({ product }: { product: any }) {
               <span className="line-clamp-1">{product.colors}</span>
             </div>
           )}
-          
-          {product.description && (
-            <div className="mt-2 p-2 rounded-xl bg-blue-50/50 border border-blue-100/30">
-              <p className="text-[10px] text-slate-500 leading-snug line-clamp-2 italic">
-                {product.description}
-              </p>
-            </div>
-          )}
         </div>
 
-        {/* Цена и упаковка — Добавлено кол-во пар в коробке */}
+        {/* Цена и количество пар (Цена за коробку убрана) */}
         <div className="mt-auto pt-2 border-t border-slate-50">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col">
               <span className="text-xl font-black text-blue-600 leading-none">{product.price} сом</span>
-              <div className="bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">
-                <span className="text-[9px] font-black text-slate-600 flex items-center gap-1 uppercase">
-                  <Box size={10} className="text-blue-600" />
-                  {product.pack_count || 6} пар
-                </span>
-              </div>
+              <span className="text-[9px] font-black text-slate-400 uppercase mt-1 italic tracking-tighter">цена за одну пару</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter italic">цена за одну пару</span>
-              <span className="text-[10px] font-black text-slate-900 uppercase">
-                {(product.price * (product.pack_count || 6)).toLocaleString()} сом / кор.
+            
+            {/* ТЕКСТ О КОЛИЧЕСТВЕ ИЗ АДМИНКИ */}
+            <div className="bg-slate-900 px-2.5 py-1.5 rounded-xl shadow-sm">
+              <span className="text-[10px] font-black text-white flex items-center gap-1.5 uppercase tracking-tighter">
+                <Box size={12} className="text-blue-400" />
+                {product.pairs_per_box || "6"} ПАР
               </span>
             </div>
           </div>
@@ -198,12 +191,13 @@ export function ProductCard({ product }: { product: any }) {
               </div>
             )}
             <div className="flex flex-col items-center p-4 bg-slate-50 rounded-2xl">
-              <span className="text-[9px] font-black text-slate-400 uppercase mb-2 text-center">Количество пар (по {product.pack_count || 6} в коробе)</span>
+              <span className="text-[9px] font-black text-slate-400 uppercase mb-2 text-center">Количество пар (по {packSize} в коробе)</span>
               <div className="flex items-center gap-6">
-                <Button variant="ghost" className="h-10 w-10 rounded-full bg-white shadow-sm" onClick={() => setTotalPairs(Math.max(product.pack_count || 6, totalPairs - (product.pack_count || 6)))}><Minus size={16}/></Button>
+                <Button variant="ghost" className="h-10 w-10 rounded-full bg-white shadow-sm" onClick={() => setTotalPairs(Math.max(packSize, totalPairs - packSize))}><Minus size={16}/></Button>
                 <span className="text-2xl font-black">{totalPairs}</span>
-                <Button variant="ghost" className="h-10 w-10 rounded-full bg-white shadow-sm" onClick={() => setTotalPairs(totalPairs + (product.pack_count || 6))}><Plus size={16}/></Button>
+                <Button variant="ghost" className="h-10 w-10 rounded-full bg-white shadow-sm" onClick={() => setTotalPairs(totalPairs + packSize)}><Plus size={16}/></Button>
               </div>
+              <span className="text-[10px] font-bold text-blue-600 mt-2 uppercase">Коробок: {totalPairs / packSize}</span>
             </div>
             {mode === "quick" && (
               <div className="space-y-2">
@@ -219,4 +213,4 @@ export function ProductCard({ product }: { product: any }) {
       </Dialog>
     </Card>
   );
-}
+    }
