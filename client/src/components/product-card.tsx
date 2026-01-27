@@ -2,7 +2,7 @@ import { Product } from "@/lib/products";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
-import { ShoppingCart, Ruler, Box, Palette, ChevronLeft, ChevronRight, X, Maximize2, Minus, Plus, CheckCircle2 } from "lucide-react";
+import { ShoppingCart, Ruler, Box, Palette, ChevronLeft, ChevronRight, X, Maximize2, Minus, Plus, Users, AlignLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -56,10 +56,7 @@ export function ProductCard({ product }: { product: Product }) {
         });
 
         if (response.ok) {
-          // ЗАКРЫВАЕМ МОДАЛКУ ПЕРЕД УВЕДОМЛЕНИЕМ
           setIsOrderOpen(false);
-          
-          // ЭФФЕКТНОЕ УВЕДОМЛЕНИЕ (НЕ ПРОЗРАЧНОЕ)
           toast({ 
             className: "bg-slate-900 border-none text-white rounded-[2rem] p-6 shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex items-center gap-4",
             duration: 5000,
@@ -98,9 +95,10 @@ export function ProductCard({ product }: { product: Product }) {
           className="w-full h-full object-cover cursor-pointer transition-transform duration-700 group-hover:scale-105"
           onClick={() => { setCurrentPhotoIdx(0); setIsGalleryOpen(true); }}
         />
-        <div className="absolute top-4 left-4 flex gap-1.5">
+        <div className="absolute top-4 left-4 flex gap-1.5 flex-wrap">
           {product.is_new && <Badge className="bg-green-500 border-none font-black text-[9px] px-2 py-1 shadow-lg uppercase tracking-tighter">NEW</Badge>}
           {product.is_bestseller && <Badge className="bg-orange-500 border-none font-black text-[9px] px-2 py-1 shadow-lg uppercase tracking-tighter">HIT</Badge>}
+          <Badge className="bg-blue-600/80 backdrop-blur-sm border-none font-black text-[9px] px-2 py-1 shadow-lg uppercase tracking-tighter">{product.season}</Badge>
         </div>
         <Button 
           variant="ghost" size="icon" 
@@ -115,6 +113,15 @@ export function ProductCard({ product }: { product: Product }) {
         <h3 className="font-black text-slate-900 text-[14px] uppercase mb-4 leading-tight min-h-[35px] tracking-tight">{product.name}</h3>
 
         <div className="space-y-2 mb-4">
+          {/* ГЕНДЕР (ПОЛ) */}
+          <div className="flex items-center gap-3 p-3 rounded-2xl bg-blue-50/50 border border-blue-100/30">
+            <Users size={14} className="text-blue-500" />
+            <div className="flex flex-col">
+              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Для кого:</span>
+              <span className="text-[10px] font-bold text-slate-700 uppercase">{product.gender || "Универсальные"}</span>
+            </div>
+          </div>
+
           <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100/50">
             <Palette size={14} className="text-blue-500" />
             <div className="flex flex-col">
@@ -138,6 +145,17 @@ export function ProductCard({ product }: { product: Product }) {
               <span className="text-[10px] font-bold text-slate-700 uppercase">{product.pairs_per_box || "12"} пар</span>
             </div>
           </div>
+
+          {/* ОПИСАНИЕ (если есть) */}
+          {product.description && (
+            <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100/50 mt-2">
+              <AlignLeft size={14} className="text-slate-400 mt-0.5" />
+              <div className="flex flex-col">
+                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Описание:</span>
+                <p className="text-[10px] text-slate-600 leading-relaxed font-medium">{product.description}</p>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="mt-auto pt-2 mb-4">
@@ -145,6 +163,10 @@ export function ProductCard({ product }: { product: Product }) {
             <span className="text-3xl font-black text-blue-600 leading-none">{product.price}</span>
             <span className="text-[10px] font-black text-blue-400 uppercase tracking-tighter">сом / пара</span>
           </div>
+          {/* СТАТУС НАЛИЧИЯ */}
+          <p className={`text-[9px] font-black uppercase mt-1 ${product.status === "В наличии" ? "text-green-500" : "text-orange-500"}`}>
+            ● {product.status}
+          </p>
         </div>
 
         <div className="flex flex-col gap-2">
@@ -231,5 +253,4 @@ export function ProductCard({ product }: { product: Product }) {
       </Dialog>
     </Card>
   );
-      }
-      
+}
