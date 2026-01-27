@@ -1,3 +1,4 @@
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
@@ -23,14 +24,12 @@ export function ProductCard({ product }: { product: any }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
 
-  // ЛОГИКА ЦВЕТОВ
   const colorOptions = product.colors 
     ? product.colors.split(/[,/]+/).map((c: string) => c.trim()).filter(Boolean) 
     : [];
   
   const [selectedColor, setSelectedColor] = useState(colorOptions[0] || "Стандарт");
 
-  // Обновляем выбранный цвет, если продукт изменился
   useEffect(() => {
     if (colorOptions.length > 0) {
       setSelectedColor(colorOptions[0]);
@@ -45,7 +44,12 @@ export function ProductCard({ product }: { product: any }) {
   const handleAction = async () => {
     if (mode === "cart") {
       addItem(product, totalPairs, selectedColor);
-      toast({ title: "🛒 ДОБАВЛЕНО", description: `${product.name} в корзине` });
+      // УВЕДОМЛЕНИЕ: Синий фон, белый текст, без прозрачности
+      toast({ 
+        title: "🛒 ДОБАВЛЕНО В КОРЗИНУ", 
+        description: `${product.name} — ${totalPairs} пар`,
+        className: "bg-[#2563eb] text-white border-none shadow-2xl rounded-2xl p-4 font-black uppercase text-[10px] opacity-100 fill-none" 
+      });
       setIsOrderOpen(false);
     } else {
       if (!name || !phone) {
@@ -60,7 +64,12 @@ export function ProductCard({ product }: { product: any }) {
         });
         if (response.ok) {
           setIsOrderOpen(false);
-          toast({ title: "✅ ЗАКАЗ ОТПРАВЛЕН", description: "Мы скоро свяжемся с вами" });
+          // УВЕДОМЛЕНИЕ: Зеленый фон, белый текст
+          toast({ 
+            title: "✅ ЗАКАЗ ОТПРАВЛЕН", 
+            description: "Ожидайте звонка",
+            className: "bg-[#16a34a] text-white border-none shadow-2xl rounded-2xl p-4 font-black uppercase text-[10px] opacity-100" 
+          });
           setName(""); setPhone("");
         }
       } catch (error) {
@@ -85,7 +94,7 @@ export function ProductCard({ product }: { product: any }) {
         </div>
         <Button 
           variant="ghost" size="icon" 
-          className="absolute bottom-2 right-2 bg-white/80 backdrop-blur-md rounded-full h-8 w-8 shadow-sm"
+          className="absolute bottom-2 right-2 bg-white/90 backdrop-blur-md rounded-full h-8 w-8 shadow-sm"
           onClick={() => { setCurrentPhotoIdx(0); setIsGalleryOpen(true); }}
         >
           <Maximize2 size={14} className="text-slate-900" />
@@ -109,7 +118,6 @@ export function ProductCard({ product }: { product: any }) {
             <span>{product.sizes}</span>
           </div>
           
-          {/* ЦВЕТА (Добавлено сюда) */}
           {product.colors && (
             <div className="flex items-center gap-2 text-[10px] text-slate-600 font-bold">
               <Palette size={12} className="text-blue-600" />
@@ -117,13 +125,8 @@ export function ProductCard({ product }: { product: any }) {
             </div>
           )}
           
-          {/* ОПИСАНИЕ */}
           {product.description && (
             <div className="mt-2 p-2 rounded-xl bg-blue-50/50 border border-blue-100/30">
-              <div className="flex items-center gap-1 mb-1 text-blue-700">
-                <AlignLeft size={10} />
-                <span className="text-[8px] font-black uppercase tracking-widest">Описание:</span>
-              </div>
               <p className="text-[10px] text-slate-500 leading-snug line-clamp-2 italic">
                 {product.description}
               </p>
@@ -131,11 +134,13 @@ export function ProductCard({ product }: { product: any }) {
           )}
         </div>
 
-        {/* Цена */}
+        {/* Цена — Исправлено отображение */}
         <div className="mt-auto pt-2 border-t border-slate-50">
-          <div className="flex items-baseline gap-1">
-            <span className="text-xl font-black text-blue-600 leading-none">{product.price}</span>
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">сом/п</span>
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-baseline gap-1">
+              <span className="text-xl font-black text-blue-600 leading-none">{product.price} сом</span>
+            </div>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">за одну пару</span>
           </div>
         </div>
 
@@ -152,7 +157,7 @@ export function ProductCard({ product }: { product: any }) {
 
       {/* ГАЛЕРЕЯ */}
       <Dialog open={isGalleryOpen} onOpenChange={setIsGalleryOpen}>
-        <DialogContent className="max-w-[100vw] h-[100vh] p-0 border-none bg-black/95 flex items-center justify-center">
+        <DialogContent className="max-w-[100vw] h-[100vh] p-0 border-none bg-black flex items-center justify-center">
           <Button variant="ghost" className="absolute top-6 right-6 text-white z-50 rounded-full bg-white/10" onClick={() => setIsGalleryOpen(false)}><X size={32} /></Button>
           {allPhotos.length > 1 && (
             <>
@@ -166,7 +171,7 @@ export function ProductCard({ product }: { product: any }) {
 
       {/* МОДАЛКА ВЫБОРА */}
       <Dialog open={isOrderOpen} onOpenChange={setIsOrderOpen}>
-        <DialogContent className="rounded-[2.5rem] p-6 max-w-[400px] border-none bg-white font-sans">
+        <DialogContent className="rounded-[2.5rem] p-6 max-w-[95vw] md:max-w-[400px] border-none bg-white font-sans">
           <DialogHeader><DialogTitle className="font-black uppercase text-center text-xl tracking-tighter">{mode === "quick" ? "⚡ БЫСТРЫЙ ЗАКАЗ" : "🛒 В КОРЗИНУ"}</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-4">
             {colorOptions.length > 0 && (
@@ -188,7 +193,7 @@ export function ProductCard({ product }: { product: any }) {
               </div>
             )}
             <div className="flex flex-col items-center p-4 bg-slate-50 rounded-2xl">
-              <span className="text-[9px] font-black text-slate-400 uppercase mb-2">Количество (по 6 пар)</span>
+              <span className="text-[9px] font-black text-slate-400 uppercase mb-2 text-center">Количество пар (по 6 в коробе)</span>
               <div className="flex items-center gap-6">
                 <Button variant="ghost" className="h-10 w-10 rounded-full bg-white shadow-sm" onClick={() => setTotalPairs(Math.max(6, totalPairs - 6))}><Minus size={16}/></Button>
                 <span className="text-2xl font-black">{totalPairs}</span>
@@ -209,4 +214,4 @@ export function ProductCard({ product }: { product: any }) {
       </Dialog>
     </Card>
   );
-            }
+}
