@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
@@ -44,7 +43,6 @@ export function ProductCard({ product }: { product: any }) {
   const handleAction = async () => {
     if (mode === "cart") {
       addItem(product, totalPairs, selectedColor);
-      // УВЕДОМЛЕНИЕ: Синий фон, белый текст, без прозрачности
       toast({ 
         title: "🛒 ДОБАВЛЕНО В КОРЗИНУ", 
         description: `${product.name} — ${totalPairs} пар`,
@@ -64,7 +62,6 @@ export function ProductCard({ product }: { product: any }) {
         });
         if (response.ok) {
           setIsOrderOpen(false);
-          // УВЕДОМЛЕНИЕ: Зеленый фон, белый текст
           toast({ 
             title: "✅ ЗАКАЗ ОТПРАВЛЕН", 
             description: "Ожидайте звонка",
@@ -102,12 +99,10 @@ export function ProductCard({ product }: { product: any }) {
       </div>
 
       <CardContent className="p-3 flex flex-col flex-grow">
-        {/* Название */}
         <h3 className="font-black text-slate-900 text-[12px] uppercase mb-2 line-clamp-1 tracking-tight">
           {product.name}
         </h3>
 
-        {/* Характеристики */}
         <div className="space-y-1 mb-3">
           <div className="flex items-center gap-2 text-[10px] text-slate-600 font-bold uppercase">
             <Users size={12} className="text-blue-600" />
@@ -134,17 +129,27 @@ export function ProductCard({ product }: { product: any }) {
           )}
         </div>
 
-        {/* Цена — Исправлено отображение */}
+        {/* Цена и упаковка — Добавлено кол-во пар в коробке */}
         <div className="mt-auto pt-2 border-t border-slate-50">
-          <div className="flex flex-col gap-0.5">
-            <div className="flex items-baseline gap-1">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center justify-between">
               <span className="text-xl font-black text-blue-600 leading-none">{product.price} сом</span>
+              <div className="bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">
+                <span className="text-[9px] font-black text-slate-600 flex items-center gap-1 uppercase">
+                  <Box size={10} className="text-blue-600" />
+                  {product.pack_count || 6} пар
+                </span>
+              </div>
             </div>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">за одну пару</span>
+            <div className="flex justify-between items-center">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter italic">цена за одну пару</span>
+              <span className="text-[10px] font-black text-slate-900 uppercase">
+                {(product.price * (product.pack_count || 6)).toLocaleString()} сом / кор.
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Кнопки */}
         <div className="grid grid-cols-2 gap-2 mt-3">
           <Button onClick={() => openModal("quick")} className="bg-slate-900 hover:bg-black text-white rounded-xl h-10 text-[9px] font-black uppercase tracking-wider">
             Купить
@@ -193,11 +198,11 @@ export function ProductCard({ product }: { product: any }) {
               </div>
             )}
             <div className="flex flex-col items-center p-4 bg-slate-50 rounded-2xl">
-              <span className="text-[9px] font-black text-slate-400 uppercase mb-2 text-center">Количество пар (по 6 в коробе)</span>
+              <span className="text-[9px] font-black text-slate-400 uppercase mb-2 text-center">Количество пар (по {product.pack_count || 6} в коробе)</span>
               <div className="flex items-center gap-6">
-                <Button variant="ghost" className="h-10 w-10 rounded-full bg-white shadow-sm" onClick={() => setTotalPairs(Math.max(6, totalPairs - 6))}><Minus size={16}/></Button>
+                <Button variant="ghost" className="h-10 w-10 rounded-full bg-white shadow-sm" onClick={() => setTotalPairs(Math.max(product.pack_count || 6, totalPairs - (product.pack_count || 6)))}><Minus size={16}/></Button>
                 <span className="text-2xl font-black">{totalPairs}</span>
-                <Button variant="ghost" className="h-10 w-10 rounded-full bg-white shadow-sm" onClick={() => setTotalPairs(totalPairs + 6)}><Plus size={16}/></Button>
+                <Button variant="ghost" className="h-10 w-10 rounded-full bg-white shadow-sm" onClick={() => setTotalPairs(totalPairs + (product.pack_count || 6))}><Plus size={16}/></Button>
               </div>
             </div>
             {mode === "quick" && (
