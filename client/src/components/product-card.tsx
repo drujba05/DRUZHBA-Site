@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
-import { ShoppingCart, Ruler, Box, Palette, ChevronLeft, ChevronRight, X, Maximize2, Minus, Plus, Users, AlignLeft } from "lucide-react";
+import { ShoppingCart, Ruler, Box, ChevronLeft, ChevronRight, X, Maximize2, Minus, Plus, Users, AlignLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -34,113 +34,104 @@ export function ProductCard({ product }: { product: any }) {
   const handleAction = async () => {
     if (mode === "cart") {
       addItem(product, totalPairs, selectedColor);
-      toast({ 
-        className: "bg-white border-2 border-blue-600 rounded-2xl shadow-2xl font-sans",
-        title: "🛒 КОРЗИНА ОБНОВЛЕНА", 
-        description: `${product.name} — ${totalPairs} пар добавлено` 
-      });
+      toast({ title: "🛒 ДОБАВЛЕНО", description: `${product.name} в корзине` });
       setIsOrderOpen(false);
     } else {
       if (!name || !phone) {
-        toast({ variant: "destructive", title: "Заполните данные", description: "Имя и телефон обязательны" });
+        toast({ variant: "destructive", title: "Заполните данные" });
         return;
       }
       try {
         const response = await fetch("/api/quick-order", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            productId: product.id,
-            customerName: name,
-            customerPhone: phone,
-            color: selectedColor,
-            quantity: totalPairs
-          }),
+          body: JSON.stringify({ productId: product.id, customerName: name, customerPhone: phone, color: selectedColor, quantity: totalPairs }),
         });
-
         if (response.ok) {
           setIsOrderOpen(false);
-          toast({ 
-            className: "bg-slate-900 border-none text-white rounded-[2rem] p-6 shadow-2xl flex items-center gap-4 font-sans",
-            duration: 5000,
-            title: "✅ ЗАКАЗ ОТПРАВЛЕН!", 
-            description: (
-              <div className="text-slate-300">
-                <p className="font-black text-white uppercase text-[10px] mb-1">Товар: {product.name}</p>
-                Мы свяжемся с вами в ближайшее время
-              </div>
-            )
-          });
+          toast({ title: "✅ ЗАКАЗ ОТПРАВЛЕН", description: "Мы скоро свяжемся с вами" });
           setName(""); setPhone("");
         }
       } catch (error) {
-        toast({ variant: "destructive", title: "ОШИБКА ОТПРАВКИ" });
+        toast({ variant: "destructive", title: "ОШИБКА" });
       }
     }
   };
 
   return (
-    <Card className="group overflow-hidden border-none shadow-sm hover:shadow-2xl transition-all duration-500 rounded-[2.5rem] bg-[#FDFDFD] flex flex-col h-full font-sans">
-      <div className="relative aspect-[4/5] overflow-hidden m-2 rounded-[2rem] bg-slate-100 shadow-inner">
+    <Card className="group overflow-hidden border-none shadow-sm hover:shadow-md transition-all rounded-[1.5rem] bg-white flex flex-col h-full font-sans">
+      {/* ФОТО СЕКЦИЯ (Компактная 1:1) */}
+      <div className="relative aspect-square overflow-hidden m-1 rounded-[1.2rem] bg-slate-100">
         <img
           src={product.main_photo}
           alt={product.name}
-          className="w-full h-full object-cover cursor-pointer transition-transform duration-700 group-hover:scale-110"
+          className="w-full h-full object-cover cursor-pointer transition-transform duration-500 group-hover:scale-105"
           onClick={() => { setCurrentPhotoIdx(0); setIsGalleryOpen(true); }}
         />
-        <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
-          {product.is_new && <Badge className="bg-green-600 border-none font-black text-[10px] px-3 py-1.5 shadow-xl uppercase">NEW</Badge>}
-          {product.is_bestseller && <Badge className="bg-orange-600 border-none font-black text-[10px] px-3 py-1.5 shadow-xl uppercase">HIT</Badge>}
-          <Badge className="bg-blue-600 text-white border-none font-black text-[10px] px-3 py-1.5 shadow-xl uppercase">{product.season}</Badge>
+        <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
+          {product.is_new && <Badge className="bg-green-600 text-[8px] h-4 px-1 shadow-md uppercase">NEW</Badge>}
+          <Badge className="bg-blue-600 text-white text-[8px] h-4 px-1 shadow-md uppercase">{product.season}</Badge>
         </div>
         <Button 
           variant="ghost" size="icon" 
-          className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-md rounded-full shadow-xl"
+          className="absolute bottom-2 right-2 bg-white/80 backdrop-blur-md rounded-full h-8 w-8 shadow-sm"
           onClick={() => { setCurrentPhotoIdx(0); setIsGalleryOpen(true); }}
         >
-          <Maximize2 size={18} className="text-slate-900" />
+          <Maximize2 size={14} className="text-slate-900" />
         </Button>
       </div>
 
-      <CardContent className="p-5 flex flex-col flex-grow">
-        <h3 className="font-black text-slate-900 text-[15px] uppercase mb-4 leading-tight min-h-[40px] tracking-tight">{product.name}</h3>
+      <CardContent className="p-3 flex flex-col flex-grow">
+        {/* Название */}
+        <h3 className="font-black text-slate-900 text-[12px] uppercase mb-2 line-clamp-1 tracking-tight">
+          {product.name}
+        </h3>
 
-        <div className="space-y-2 mb-4">
-          <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100/50">
-            <Users size={14} className="text-blue-600" />
-            <span className="text-[10px] font-bold text-slate-800 uppercase">{product.gender || "Универсальные"}</span>
+        {/* Характеристики (Мелкие и аккуратные) */}
+        <div className="space-y-1 mb-3">
+          <div className="flex items-center gap-2 text-[10px] text-slate-600">
+            <Users size={12} className="text-blue-600" />
+            <span className="font-bold uppercase">{product.gender}</span>
           </div>
-          <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100/50">
-            <Ruler size={14} className="text-blue-600" />
-            <span className="text-[10px] font-bold text-slate-800 uppercase">{product.sizes}</span>
+          <div className="flex items-center gap-2 text-[10px] text-slate-600">
+            <Ruler size={12} className="text-blue-600" />
+            <span className="font-bold">{product.sizes}</span>
           </div>
-          <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100/50">
-            <Box size={14} className="text-blue-600" />
-            <span className="text-[10px] font-bold text-slate-800 uppercase">{product.pairs_per_box || product.pairs_in_box || "8"} пар</span>
+          
+          {/* БЛОК ОПИСАНИЯ — ТЕПЕРЬ ОНО ТУТ */}
+          {product.description && (
+            <div className="mt-2 p-2 rounded-xl bg-blue-50/50 border border-blue-100/30">
+              <div className="flex items-center gap-1 mb-1 text-blue-700">
+                <AlignLeft size={10} />
+                <span className="text-[8px] font-black uppercase">Описание:</span>
+              </div>
+              <p className="text-[10px] text-slate-500 leading-snug line-clamp-2 italic">
+                {product.description}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Цена и статус */}
+        <div className="mt-auto pt-2 border-t border-slate-50">
+          <div className="flex items-baseline gap-1">
+            <span className="text-xl font-black text-blue-600 leading-none">{product.price}</span>
+            <span className="text-[9px] font-bold text-slate-400 uppercase">сом/п</span>
           </div>
         </div>
 
-        <div className="mt-auto pt-2 mb-4 border-t border-slate-100">
-          <div className="flex items-baseline gap-1 mt-3">
-            <span className="text-3xl font-black text-blue-600 leading-none">{product.price}</span>
-            <span className="text-[10px] font-black text-blue-500 uppercase tracking-tighter">сом / пара</span>
-          </div>
-          <p className={`text-[9px] font-black uppercase mt-1 ${product.status === "В наличии" ? "text-green-600" : "text-orange-600"}`}>
-            ● {product.status || "В наличии"}
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <Button onClick={() => openModal("quick")} className="w-full bg-slate-900 hover:bg-black text-white rounded-2xl h-14 text-[11px] font-black uppercase tracking-[0.2em] shadow-lg transition-all active:scale-95">
-            Купить сейчас
+        {/* Кнопки (В один ряд для экономии места) */}
+        <div className="grid grid-cols-2 gap-2 mt-3">
+          <Button onClick={() => openModal("quick")} className="bg-slate-900 hover:bg-black text-white rounded-xl h-10 text-[9px] font-black uppercase tracking-wider">
+            Купить
           </Button>
-          <Button variant="outline" onClick={() => openModal("cart")} className="w-full border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-600 hover:text-blue-600 rounded-2xl h-14 text-[11px] font-bold uppercase tracking-widest transition-all">
-            <ShoppingCart size={16} className="mr-2" /> В корзину
+          <Button variant="outline" onClick={() => openModal("cart")} className="border-slate-200 hover:border-blue-400 text-slate-600 rounded-xl h-10 text-[9px] font-black uppercase">
+            <ShoppingCart size={12} />
           </Button>
         </div>
       </CardContent>
 
-      {/* ГАЛЕРЕЯ */}
+      {/* ГАЛЕРЕЯ И МОДАЛКА (ОСТАЮТСЯ КАК БЫЛИ) */}
       <Dialog open={isGalleryOpen} onOpenChange={setIsGalleryOpen}>
         <DialogContent className="max-w-[100vw] h-[100vh] p-0 border-none bg-black/95 flex items-center justify-center">
           <Button variant="ghost" className="absolute top-6 right-6 text-white z-50 rounded-full bg-white/10" onClick={() => setIsGalleryOpen(false)}><X size={32} /></Button>
@@ -154,36 +145,32 @@ export function ProductCard({ product }: { product: any }) {
         </DialogContent>
       </Dialog>
 
-      {/* МОДАЛКА ЗАКАЗА */}
       <Dialog open={isOrderOpen} onOpenChange={setIsOrderOpen}>
-        <DialogContent className="rounded-[3rem] p-8 max-w-[420px] border-none shadow-2xl bg-white font-sans">
-          <DialogHeader><DialogTitle className="font-black uppercase text-center text-2xl tracking-tighter text-slate-900">{mode === "quick" ? "⚡ БЫСТРЫЙ ЗАКАЗ" : "🛒 В КОРЗИНУ"}</DialogTitle></DialogHeader>
-          <div className="space-y-6 pt-6">
+        <DialogContent className="rounded-[2.5rem] p-6 max-w-[400px] border-none bg-white font-sans">
+          <DialogHeader><DialogTitle className="font-black uppercase text-center text-xl tracking-tighter">{mode === "quick" ? "⚡ БЫСТРЫЙ ЗАКАЗ" : "🛒 В КОРЗИНУ"}</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-4">
             {colorOptions.length > 0 && (
-              <div className="space-y-3">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Выберите цвет:</span>
-                <div className="flex flex-wrap gap-2">
-                  {colorOptions.map((c: string) => (
-                    <button key={c} onClick={() => setSelectedColor(c)} className={`px-4 py-2 text-[11px] font-black rounded-2xl border transition-all ${selectedColor === c ? 'bg-blue-600 text-white border-blue-600 shadow-lg' : 'bg-slate-50 text-slate-500 border-slate-100 hover:border-blue-200'}`}>{c}</button>
-                  ))}
-                </div>
+              <div className="flex flex-wrap gap-1">
+                {colorOptions.map((c: string) => (
+                  <button key={c} onClick={() => setSelectedColor(c)} className={`px-3 py-1 text-[9px] font-black rounded-lg border transition-all ${selectedColor === c ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-50 text-slate-400'}`}>{c}</button>
+                ))}
               </div>
             )}
-            <div className="flex flex-col items-center p-6 bg-blue-50/50 rounded-[2.5rem] border border-blue-100/50">
-              <span className="text-[10px] font-black text-blue-500 uppercase mb-4 tracking-[0.2em]">Количество (шаг 6)</span>
-              <div className="flex items-center gap-10">
-                <Button variant="ghost" className="h-12 w-12 rounded-full bg-white shadow-md" onClick={() => setTotalPairs(Math.max(6, totalPairs - 6))}><Minus size={20} className="text-blue-600"/></Button>
-                <span className="text-4xl font-black text-slate-900">{totalPairs}</span>
-                <Button variant="ghost" className="h-12 w-12 rounded-full bg-white shadow-md" onClick={() => setTotalPairs(totalPairs + 6)}><Plus size={20} className="text-blue-600"/></Button>
+            <div className="flex flex-col items-center p-4 bg-slate-50 rounded-2xl">
+              <span className="text-[9px] font-black text-slate-400 uppercase mb-2">Количество (по 6 пар)</span>
+              <div className="flex items-center gap-6">
+                <Button variant="ghost" className="h-10 w-10 rounded-full bg-white shadow-sm" onClick={() => setTotalPairs(Math.max(6, totalPairs - 6))}><Minus size={16}/></Button>
+                <span className="text-2xl font-black">{totalPairs}</span>
+                <Button variant="ghost" className="h-10 w-10 rounded-full bg-white shadow-sm" onClick={() => setTotalPairs(totalPairs + 6)}><Plus size={16}/></Button>
               </div>
             </div>
             {mode === "quick" && (
-              <div className="space-y-3">
-                <Input placeholder="Ваше имя" className="h-14 rounded-2xl bg-slate-50 border-none px-6 font-bold focus:ring-2 focus:ring-blue-100" value={name} onChange={e => setName(e.target.value)} />
-                <Input placeholder="Номер телефона" className="h-14 rounded-2xl bg-slate-50 border-none px-6 font-bold focus:ring-2 focus:ring-blue-100" value={phone} onChange={e => setPhone(e.target.value)} />
+              <div className="space-y-2">
+                <Input placeholder="Имя" className="h-12 rounded-xl bg-slate-50 border-none px-4 text-sm font-bold" value={name} onChange={e => setName(e.target.value)} />
+                <Input placeholder="Телефон" className="h-12 rounded-xl bg-slate-50 border-none px-4 text-sm font-bold" value={phone} onChange={e => setPhone(e.target.value)} />
               </div>
             )}
-            <Button onClick={handleAction} className="w-full h-16 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase text-[12px] tracking-[0.2em] shadow-xl shadow-blue-100">
+            <Button onClick={handleAction} className="w-full h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black uppercase text-[11px] tracking-widest shadow-lg">
               {mode === "quick" ? "Подтвердить" : "Добавить"} — {(product.price * totalPairs).toLocaleString()} сом
             </Button>
           </div>
@@ -191,4 +178,4 @@ export function ProductCard({ product }: { product: any }) {
       </Dialog>
     </Card>
   );
-}
+              }
