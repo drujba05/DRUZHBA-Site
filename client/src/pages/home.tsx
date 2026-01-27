@@ -1,58 +1,183 @@
+import { useState } from "react";
 import { Link } from "wouter";
+import { useProducts } from "@/lib/products";
+import { ProductCard } from "@/components/product-card";
+import { AdminPanel } from "@/components/admin-panel";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Star, ShieldCheck, Zap } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  MessageCircle,
+  Phone,
+  ShoppingBag,
+  Truck,
+  ShieldCheck,
+  Flame,
+  Sparkles,
+  ArrowRight,
+  LayoutGrid,
+} from "lucide-react";
+import { CartDrawer } from "@/components/cart-drawer";
+import heroImage from "@assets/generated_images/modern_aesthetic_wholesale_footwear_display_background.png";
+import logoImage from "@assets/1000244032_1766756092865.png";
 
 export default function Home() {
+  const { products, addProduct, updateProduct, deleteProduct } = useProducts();
+  const [showCatalog, setShowCatalog] = useState(false);
+
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4">
-      <div className="max-w-4xl w-full text-center space-y-8">
-        <div className="space-y-4">
-          <div className="inline-flex items-center gap-2 bg-slate-50 border border-slate-100 px-4 py-2 rounded-2xl mb-4">
-            <Zap className="text-blue-600 h-4 w-4" />
-            <span className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]">Прямые поставки с Дордоя</span>
+    <div className="min-h-screen bg-background font-sans">
+      {/* Navigation */}
+      <nav
+        className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md"
+        style={{ backgroundColor: "rgba(88, 28, 135, 0.95)" }}
+      >
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+          <Link
+            href="/"
+            className="font-heading font-bold text-2xl tracking-tighter"
+            style={{
+              color: "#ffffff",
+              textShadow: "0 1px 2px rgba(0,0,0,0.3)",
+            }}
+          >
+            DRUZHBA
+          </Link>
+          <div className="flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-300">
+              <Link href="/about" className="hover:text-white transition-colors">О нас</Link>
+              <Link href="/delivery" className="hover:text-white transition-colors">Доставка и оплата</Link>
+              <Link href="/returns" className="hover:text-white transition-colors">Возврат</Link>
+            </div>
+            <CartDrawer />
           </div>
-          
-          <h1 className="text-6xl md:text-8xl font-black text-slate-900 uppercase tracking-tighter leading-[0.85]">
-            DRUZHBA<span className="text-blue-600">.</span>
-          </h1>
-          
-          {/* ВОТ ЭТА СТРОКА: ТЕПЕРЬ ЯРКО-ГОЛУБАЯ И ЖИРНАЯ */}
-          <p className="text-xl md:text-2xl font-black text-sky-500 uppercase tracking-tight">
-            Мы занимаемся собственным производством
-          </p>
-          
-          <p className="text-slate-500 text-lg md:text-xl font-medium max-w-2xl mx-auto leading-relaxed">
-            Оптовая продажа качественной обуви напрямую от производителя. 
-            Лучшие цены на рынке и гарантия качества.
-          </p>
+        </div>
+      </nav>
+
+      {/* Header / Hero */}
+      <header className="relative min-h-[600px] flex items-center text-white overflow-hidden pt-20">
+        <div
+          className="absolute inset-0 z-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${heroImage})` }}
+        >
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px]" />
         </div>
 
-        <div className="flex flex-col md:flex-row items-center justify-center gap-4">
-          <Button asChild size="lg" className="h-16 px-10 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest text-sm shadow-xl shadow-blue-100 transition-all hover:scale-105 active:scale-95 w-full md:w-auto border-none">
-            <Link href="/catalog" className="flex items-center gap-2">
-              Открыть каталог <ArrowRight size={18} />
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="lg" className="h-16 px-10 rounded-2xl border-slate-200 bg-white hover:bg-slate-50 text-slate-900 font-black uppercase tracking-widest text-sm w-full md:w-auto">
-            <Link href="/about">О нас</Link>
-          </Button>
-        </div>
+        <div className="relative z-10 container mx-auto px-4 md:px-8">
+          <div className="max-w-3xl flex flex-col items-start text-left">
+            <div className="mb-8 mt-4 p-1 bg-black rounded-xl border border-white/20 shadow-2xl animate-in fade-in slide-in-from-left duration-700">
+              <img
+                src={logoImage}
+                alt="DRUZHBA Logo"
+                className="h-32 md:h-48 w-auto object-contain rounded-lg"
+              />
+            </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-12 border-t border-slate-100">
-          <div className="flex flex-col items-center gap-2">
-            <div className="bg-blue-50 p-3 rounded-2xl"><Star className="text-blue-600" /></div>
-            <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Premium Качество</span>
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <div className="bg-blue-50 p-3 rounded-2xl"><ShieldCheck className="text-blue-600" /></div>
-            <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Гарантия</span>
-          </div>
-          <div className="flex flex-col items-center gap-2 col-span-2 md:col-span-1">
-            <div className="bg-blue-50 p-3 rounded-2xl"><Zap className="text-blue-600" /></div>
-            <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Быстрая Отгрузка</span>
+            {/* ИСПРАВЛЕННЫЙ ЦВЕТ: ТЕПЕРЬ ЯРКО-ГОЛУБОЙ (SKY-500) И ЖИРНЫЙ ТЕКСТ */}
+            <span className="inline-block py-2 px-4 rounded-full bg-sky-500 text-white text-xs md:text-sm font-black tracking-widest mb-4 border border-sky-400 shadow-lg shadow-sky-500/20 uppercase">
+              Мы занимаемся собственным производством
+            </span>
+
+            <h1 className="text-6xl md:text-8xl font-bold font-heading mb-6 tracking-tight drop-shadow-2xl">
+              DRUZHBA
+            </h1>
+
+            <p className="text-xl md:text-2xl text-gray-100 mb-12 max-w-xl leading-relaxed drop-shadow-md">
+              Высокое качество, доступные цены и быстрое оформление заказов для
+              вашего бизнеса.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-6 mt-4 w-full sm:w-auto">
+              <Button
+                size="lg"
+                className="bg-white hover:bg-gray-100 text-[#581c8b] border-0 shadow-xl shadow-black/20 text-lg h-14 px-10 rounded-full transition-all hover:scale-105"
+                onClick={() => (window.location.href = "/catalog")}
+              >
+                <div className="bg-[#581c8b] p-1.5 rounded-full mr-3">
+                    <LayoutGrid className="h-5 w-5 text-white" />
+                </div>
+                Каталог
+              </Button>
+              <Button
+                size="lg"
+                className="bg-[#0088cc] hover:bg-[#0077b5] text-white border-0 shadow-xl shadow-blue-900/30 text-lg h-14 px-10 rounded-full transition-all hover:scale-105"
+                asChild
+              >
+                <a href="https://t.me/DRUZHBAA_Bot?start=order" target="_blank" rel="noopener noreferrer">
+                  <MessageCircle className="mr-3 h-6 w-6" /> Telegram Bot
+                </a>
+              </Button>
+              <Button
+                size="lg"
+                className="bg-[#25D366] hover:bg-[#128C7E] text-white border-0 shadow-xl shadow-green-900/30 text-lg h-14 px-10 rounded-full transition-all hover:scale-105"
+                asChild
+              >
+                <a href="https://wa.me/996557650131?text=Здравствуйте,%20я%20хочу%20сделать%20заказ" target="_blank" rel="noopener noreferrer">
+                  <Phone className="mr-3 h-6 w-6" /> WhatsApp
+                </a>
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      </header>
+
+      {/* Секции Хиты и Новинки */}
+      {products.filter((p) => p.is_bestseller).length > 0 && (
+        <section className="py-16 bg-gradient-to-b from-orange-50 to-white">
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center shadow-lg shadow-orange-500/30">
+                  <Flame className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-3xl font-heading font-bold text-gray-800">Хиты продаж</h2>
+                  <p className="text-muted-foreground text-sm">Самые популярные товары</p>
+                </div>
+              </div>
+              <Link href="/catalog">
+                <Button variant="outline" className="gap-2">Все товары <ArrowRight className="w-4 h-4" /></Button>
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              {products.filter((p) => p.is_bestseller).slice(0, 10).map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {products.filter((p) => p.is_new).length > 0 && (
+        <section className="py-16 bg-gradient-to-b from-green-50 to-white">
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg shadow-green-500/30">
+                  <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-3xl font-heading font-bold text-gray-800">Новинки</h2>
+                  <p className="text-muted-foreground text-sm">Свежие поступления</p>
+                </div>
+              </div>
+              <Link href="/catalog">
+                <Button variant="outline" className="gap-2">Все товары <ArrowRight className="w-4 h-4" /></Button>
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              {products.filter((p) => p.is_new).slice(0, 10).map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      <footer className="bg-gray-900 text-gray-300 py-12">
+        <div className="container mx-auto px-4 text-center">
+            <p className="text-sm">© 2026 DRUZHBA. Все права защищены.</p>
+        </div>
+      </footer>
     </div>
   );
 }
