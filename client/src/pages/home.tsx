@@ -72,9 +72,9 @@ export default function Home() {
               />
             </div>
 
-            {/* ИСПРАВЛЕННЫЙ ЦВЕТ: ТЕПЕРЬ ЯРКО-ГОЛУБОЙ (SKY-500) И ЖИРНЫЙ ТЕКСТ */}
+            {/* ИСПРАВЛЕННАЯ ПЛАШКА: ЯРКО-ГОЛУБАЯ И ЗАМЕТНАЯ НА ПК */}
             <span className="inline-block py-2 px-4 rounded-full bg-sky-500 text-white text-xs md:text-sm font-black tracking-widest mb-4 border border-sky-400 shadow-lg shadow-sky-500/20 uppercase">
-              Мы занимаемся собственным производством
+              МЫ ЗАНИМАЕМСЯ СОБСТВЕННЫМ ПРОИЗВОДСТВОМ
             </span>
 
             <h1 className="text-6xl md:text-8xl font-bold font-heading mb-6 tracking-tight drop-shadow-2xl">
@@ -82,8 +82,7 @@ export default function Home() {
             </h1>
 
             <p className="text-xl md:text-2xl text-gray-100 mb-12 max-w-xl leading-relaxed drop-shadow-md">
-              Высокое качество, доступные цены и быстрое оформление заказов для
-              вашего бизнеса.
+              Высокое качество, доступные цены и быстрое оформление заказов для вашего бизнеса.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-6 mt-4 w-full sm:w-auto">
@@ -120,7 +119,7 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Секции Хиты и Новинки */}
+      {/* Хиты продаж */}
       {products.filter((p) => p.is_bestseller).length > 0 && (
         <section className="py-16 bg-gradient-to-b from-orange-50 to-white">
           <div className="container mx-auto px-4">
@@ -147,6 +146,7 @@ export default function Home() {
         </section>
       )}
 
+      {/* Новинки */}
       {products.filter((p) => p.is_new).length > 0 && (
         <section className="py-16 bg-gradient-to-b from-green-50 to-white">
           <div className="container mx-auto px-4">
@@ -173,11 +173,82 @@ export default function Home() {
         </section>
       )}
 
+      {/* Преимущества */}
+      <div className="bg-white border-b">
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+            <div className="flex flex-col items-center p-4">
+              <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-primary mb-3">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <h3 className="font-heading font-bold text-lg mb-1">Качество</h3>
+              <p className="text-muted-foreground text-sm">Сертифицированная продукция из лучших материалов</p>
+            </div>
+            <div className="flex flex-col items-center p-4">
+              <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-primary mb-3">
+                <Truck className="w-6 h-6" />
+              </div>
+              <h3 className="font-heading font-bold text-lg mb-1">Доставка</h3>
+              <p className="text-muted-foreground text-sm">Отправка во все регионы в кратчайшие сроки</p>
+            </div>
+            <div className="flex flex-col items-center p-4">
+              <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-primary mb-3">
+                <ShoppingBag className="w-6 h-6" />
+              </div>
+              <h3 className="font-heading font-bold text-lg mb-1">Ассортимент</h3>
+              <p className="text-muted-foreground text-sm">Широкий выбор моделей для всей семьи</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ПОЛНЫЙ ФУТЕР СО ВСЕЙ ИНФОРМАЦИЕЙ */}
       <footer className="bg-gray-900 text-gray-300 py-12">
-        <div className="container mx-auto px-4 text-center">
-            <p className="text-sm">© 2026 DRUZHBA. Все права защищены.</p>
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+              <h3 className="font-heading font-bold text-2xl text-white mb-4">DRUZHBA</h3>
+              <p className="text-sm leading-relaxed max-w-xs">
+                Ваш надежный партнер в мире оптовой обуви. Мы предлагаем лучшие условия для бизнеса и гарантируем качество каждой пары.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-bold text-white mb-4">Информация</h4>
+              <ul className="space-y-2 text-sm text-gray-400">
+                <li><Link href="/about" className="hover:text-white transition-colors">О нас</Link></li>
+                <li><Link href="/delivery" className="hover:text-white transition-colors">Доставка и оплата</Link></li>
+                <li><Link href="/returns" className="hover:text-white transition-colors">Возврат товара</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-bold text-white mb-4">Контакты</h4>
+              <ul className="space-y-3 text-sm">
+                <li>Телефон: +996 557 650 131</li>
+                <li>Telegram: @DRUZHBAA_Bot</li>
+                <li className="text-gray-400">
+                  <span className="block font-semibold text-white mb-1">График работы:</span>
+                  Пн – Чт, Сб – Вс: 08:00 – 17:00<br />
+                  <span className="text-red-400">Пятница: Выходной</span>
+                </li>
+                <li>Адрес: Рынок "Дордой", Оберон Форт, 30 проход, 2 контейнер</li>
+              </ul>
+            </div>
+            <div className="flex flex-col items-center md:items-start">
+              <h4 className="font-bold text-white mb-4">QR-код сайта</h4>
+              <div className="bg-white p-3 rounded-lg shadow-lg">
+                <img
+                  src="https://quickchart.io/qr?text=https://druzhbas.live&size=300&margin=2"
+                  alt="QR код сайта DRUZHBA"
+                  className="w-32 h-32"
+                />
+              </div>
+            </div>
+          </div>
+          <div className="border-t border-gray-800 mt-12 pt-8 text-center text-xs text-gray-500">
+            © 2026 DRUZHBA. Все права защищены.
+          </div>
         </div>
       </footer>
     </div>
   );
-}
+                  }
