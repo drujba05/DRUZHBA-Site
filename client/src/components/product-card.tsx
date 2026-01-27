@@ -1,9 +1,9 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
-import { ShoppingCart, Ruler, Box, ChevronLeft, ChevronRight, X, Maximize2, Minus, Plus, Users, AlignLeft } from "lucide-react";
+import { ShoppingCart, Ruler, Box, ChevronLeft, ChevronRight, X, Maximize2, Minus, Plus, Users, AlignLeft, Palette } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -23,8 +23,19 @@ export function ProductCard({ product }: { product: any }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
 
-  const colorOptions = product.colors ? product.colors.split(/[,/]+/).map((c: string) => c.trim()).filter(Boolean) : [];
+  // ЛОГИКА ЦВЕТОВ
+  const colorOptions = product.colors 
+    ? product.colors.split(/[,/]+/).map((c: string) => c.trim()).filter(Boolean) 
+    : [];
+  
   const [selectedColor, setSelectedColor] = useState(colorOptions[0] || "Стандарт");
+
+  // Обновляем выбранный цвет, если продукт изменился
+  useEffect(() => {
+    if (colorOptions.length > 0) {
+      setSelectedColor(colorOptions[0]);
+    }
+  }, [product.id]);
 
   const openModal = (targetMode: "quick" | "cart") => {
     setMode(targetMode);
@@ -60,7 +71,7 @@ export function ProductCard({ product }: { product: any }) {
 
   return (
     <Card className="group overflow-hidden border-none shadow-sm hover:shadow-md transition-all rounded-[1.5rem] bg-white flex flex-col h-full font-sans">
-      {/* ФОТО СЕКЦИЯ (Компактная 1:1) */}
+      {/* ФОТО СЕКЦИЯ */}
       <div className="relative aspect-square overflow-hidden m-1 rounded-[1.2rem] bg-slate-100">
         <img
           src={product.main_photo}
@@ -69,8 +80,8 @@ export function ProductCard({ product }: { product: any }) {
           onClick={() => { setCurrentPhotoIdx(0); setIsGalleryOpen(true); }}
         />
         <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
-          {product.is_new && <Badge className="bg-green-600 text-[8px] h-4 px-1 shadow-md uppercase">NEW</Badge>}
-          <Badge className="bg-blue-600 text-white text-[8px] h-4 px-1 shadow-md uppercase">{product.season}</Badge>
+          {product.is_new && <Badge className="bg-green-600 text-white text-[8px] h-4 px-1 shadow-md uppercase border-none">NEW</Badge>}
+          <Badge className="bg-blue-600 text-white text-[8px] h-4 px-1 shadow-md uppercase border-none">{product.season}</Badge>
         </div>
         <Button 
           variant="ghost" size="icon" 
@@ -87,23 +98,31 @@ export function ProductCard({ product }: { product: any }) {
           {product.name}
         </h3>
 
-        {/* Характеристики (Мелкие и аккуратные) */}
+        {/* Характеристики */}
         <div className="space-y-1 mb-3">
-          <div className="flex items-center gap-2 text-[10px] text-slate-600">
+          <div className="flex items-center gap-2 text-[10px] text-slate-600 font-bold uppercase">
             <Users size={12} className="text-blue-600" />
-            <span className="font-bold uppercase">{product.gender}</span>
+            <span>{product.gender}</span>
           </div>
-          <div className="flex items-center gap-2 text-[10px] text-slate-600">
+          <div className="flex items-center gap-2 text-[10px] text-slate-600 font-bold">
             <Ruler size={12} className="text-blue-600" />
-            <span className="font-bold">{product.sizes}</span>
+            <span>{product.sizes}</span>
           </div>
           
-          {/* БЛОК ОПИСАНИЯ — ТЕПЕРЬ ОНО ТУТ */}
+          {/* ЦВЕТА (Добавлено сюда) */}
+          {product.colors && (
+            <div className="flex items-center gap-2 text-[10px] text-slate-600 font-bold">
+              <Palette size={12} className="text-blue-600" />
+              <span className="line-clamp-1">{product.colors}</span>
+            </div>
+          )}
+          
+          {/* ОПИСАНИЕ */}
           {product.description && (
             <div className="mt-2 p-2 rounded-xl bg-blue-50/50 border border-blue-100/30">
               <div className="flex items-center gap-1 mb-1 text-blue-700">
                 <AlignLeft size={10} />
-                <span className="text-[8px] font-black uppercase">Описание:</span>
+                <span className="text-[8px] font-black uppercase tracking-widest">Описание:</span>
               </div>
               <p className="text-[10px] text-slate-500 leading-snug line-clamp-2 italic">
                 {product.description}
@@ -112,15 +131,15 @@ export function ProductCard({ product }: { product: any }) {
           )}
         </div>
 
-        {/* Цена и статус */}
+        {/* Цена */}
         <div className="mt-auto pt-2 border-t border-slate-50">
           <div className="flex items-baseline gap-1">
             <span className="text-xl font-black text-blue-600 leading-none">{product.price}</span>
-            <span className="text-[9px] font-bold text-slate-400 uppercase">сом/п</span>
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">сом/п</span>
           </div>
         </div>
 
-        {/* Кнопки (В один ряд для экономии места) */}
+        {/* Кнопки */}
         <div className="grid grid-cols-2 gap-2 mt-3">
           <Button onClick={() => openModal("quick")} className="bg-slate-900 hover:bg-black text-white rounded-xl h-10 text-[9px] font-black uppercase tracking-wider">
             Купить
@@ -131,7 +150,7 @@ export function ProductCard({ product }: { product: any }) {
         </div>
       </CardContent>
 
-      {/* ГАЛЕРЕЯ И МОДАЛКА (ОСТАЮТСЯ КАК БЫЛИ) */}
+      {/* ГАЛЕРЕЯ */}
       <Dialog open={isGalleryOpen} onOpenChange={setIsGalleryOpen}>
         <DialogContent className="max-w-[100vw] h-[100vh] p-0 border-none bg-black/95 flex items-center justify-center">
           <Button variant="ghost" className="absolute top-6 right-6 text-white z-50 rounded-full bg-white/10" onClick={() => setIsGalleryOpen(false)}><X size={32} /></Button>
@@ -145,15 +164,27 @@ export function ProductCard({ product }: { product: any }) {
         </DialogContent>
       </Dialog>
 
+      {/* МОДАЛКА ВЫБОРА */}
       <Dialog open={isOrderOpen} onOpenChange={setIsOrderOpen}>
         <DialogContent className="rounded-[2.5rem] p-6 max-w-[400px] border-none bg-white font-sans">
           <DialogHeader><DialogTitle className="font-black uppercase text-center text-xl tracking-tighter">{mode === "quick" ? "⚡ БЫСТРЫЙ ЗАКАЗ" : "🛒 В КОРЗИНУ"}</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-4">
             {colorOptions.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {colorOptions.map((c: string) => (
-                  <button key={c} onClick={() => setSelectedColor(c)} className={`px-3 py-1 text-[9px] font-black rounded-lg border transition-all ${selectedColor === c ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-50 text-slate-400'}`}>{c}</button>
-                ))}
+              <div className="space-y-2">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Выберите цвет:</span>
+                <div className="flex flex-wrap gap-1">
+                  {colorOptions.map((c: string) => (
+                    <button 
+                      key={c} 
+                      onClick={() => setSelectedColor(c)} 
+                      className={`px-3 py-1.5 text-[9px] font-black rounded-lg border transition-all ${
+                        selectedColor === c ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-slate-50 text-slate-400 border-slate-100'
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
             <div className="flex flex-col items-center p-4 bg-slate-50 rounded-2xl">
@@ -178,4 +209,4 @@ export function ProductCard({ product }: { product: any }) {
       </Dialog>
     </Card>
   );
-              }
+            }
