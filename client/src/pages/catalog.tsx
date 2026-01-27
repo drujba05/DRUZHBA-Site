@@ -33,7 +33,7 @@ export default function Catalog() {
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex flex-col gap-3">
             
-            {/* Верхний ряд: Назад + Заголовок + Корзина */}
+            {/* Верхний ряд: Назад + Заголовок в рамке + Видимая Корзина */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Link href="/">
@@ -42,16 +42,15 @@ export default function Catalog() {
                     <span className="ml-1 text-[10px] font-black uppercase tracking-tighter text-slate-900">Назад</span>
                   </Button>
                 </Link>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-lg font-black uppercase tracking-tighter">Каталог</h1>
-                  <span className="bg-blue-600 text-white text-[9px] px-2 py-0.5 rounded-full font-bold">
-                    {filteredProducts?.length || 0}
-                  </span>
+                
+                {/* ЗАГОЛОВОК В КРАСИВОЙ РАМКЕ */}
+                <div className="px-4 py-1 border-2 border-slate-900 rounded-lg bg-white shadow-[2px_2px_0px_0px_rgba(15,23,42,1)]">
+                  <h1 className="text-[12px] font-black uppercase tracking-[0.15em] text-slate-900">Каталог</h1>
                 </div>
               </div>
 
-              {/* КОРЗИНА */}
-              <div className="flex items-center gap-2">
+              {/* КОРЗИНА (ЯРКАЯ И ВИДИМАЯ) */}
+              <div className="flex items-center justify-center bg-blue-600 rounded-xl p-0.5 shadow-lg shadow-blue-200">
                 <CartDrawer />
               </div>
             </div>
