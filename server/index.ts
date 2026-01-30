@@ -64,18 +64,27 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // 1️⃣ Регистрируем маршруты приложения (API)
-  const server = await registerRoutes(app);
+  try {
+    // 1️⃣ Регистрируем маршруты приложения (API)
+    const server = await registerRoutes(app);
 
-  // 2️⃣ Динамический sitemap
-  app.use(sitemapRouter);
+    // 2️⃣ Динамический sitemap и SEO файлы
+    app.use(sitemapRouter);
 
-  // 3️⃣ Обработка ошибок
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-    res.status(status).json({ message });
-  });
+    // 3️⃣ Обработка ошибок
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+      res.status(status).json({ message });
+    });
 
-  // 4️⃣ Раздача статических файлов и SPA-роутинг
-  if (process.env.NODE_ENV === "production" || process.env.RAILWAY_ENVIRONMENT
+    // 4️⃣ Раздача статических файлов и SPA-роутинг
+    if (process.env.NODE_ENV === "production" || process.env.RAILWAY_ENVIRONMENT) {
+      serveStatic(app);
+    } else {
+      const { setupVite } = await import("./vite");
+      await setupVite(server, app);
+    }
+
+    // 5️⃣ Запуск сервера
+    const port = parseInt(process.env.PORT || "500
