@@ -12,7 +12,6 @@ export function ProductCard({ product }: { product: any }) {
   const { addItem } = useCart();
   const { toast } = useToast();
   
-  // ИСПОЛЬЗУЕМ pairs_per_box ИЗ СЕРВЕРА (ПРЕВРАЩАЕМ В ЧИСЛО)
   const packSize = parseInt(product.pairs_per_box) || 6;
 
   const [isOrderOpen, setIsOrderOpen] = useState(false);
@@ -81,7 +80,6 @@ export function ProductCard({ product }: { product: any }) {
 
   return (
     <Card className="group overflow-hidden border-none shadow-sm hover:shadow-md transition-all rounded-[1.5rem] bg-white flex flex-col h-full font-sans">
-      {/* ФОТО СЕКЦИЯ */}
       <div className="relative aspect-square overflow-hidden m-1 rounded-[1.2rem] bg-slate-100">
         <img
           src={product.main_photo}
@@ -107,19 +105,18 @@ export function ProductCard({ product }: { product: any }) {
           {product.name}
         </h3>
 
-        {/* --- НОВЫЙ БЛОК ОПИСАНИЯ --- */}
+        {/* БЛОК ОПИСАНИЯ БЕЗ ОГРАНИЧЕНИЯ ПО СТРОКАМ */}
         {product.description && (
-          <div className="mb-3">
+          <div className="mb-3 bg-slate-50/50 p-2 rounded-lg border border-slate-100">
             <div className="flex items-center gap-2 text-[9px] text-blue-600 font-black uppercase mb-1">
-              <AlignLeft size={12} />
+              <AlignLeft size={10} />
               <span>Описание</span>
             </div>
-            <p className="text-[11px] text-slate-500 leading-tight line-clamp-3 italic">
+            <p className="text-[10px] text-slate-600 leading-normal font-medium whitespace-pre-wrap">
               {product.description}
             </p>
           </div>
         )}
-        {/* ------------------------- */}
 
         <div className="space-y-1 mb-3">
           <div className="flex items-center gap-2 text-[10px] text-slate-600 font-bold uppercase">
@@ -139,7 +136,6 @@ export function ProductCard({ product }: { product: any }) {
           )}
         </div>
 
-        {/* Цена и количество пар */}
         <div className="mt-auto pt-2 border-t border-slate-50">
           <div className="flex items-center justify-between">
             <div className="flex flex-col">
@@ -166,7 +162,6 @@ export function ProductCard({ product }: { product: any }) {
         </div>
       </CardContent>
 
-      {/* ГАЛЕРЕЯ */}
       <Dialog open={isGalleryOpen} onOpenChange={setIsGalleryOpen}>
         <DialogContent className="max-w-[100vw] h-[100vh] p-0 border-none bg-black flex items-center justify-center">
           <Button variant="ghost" className="absolute top-6 right-6 text-white z-50 rounded-full bg-white/10" onClick={() => setIsGalleryOpen(false)}><X size={32} /></Button>
@@ -180,7 +175,6 @@ export function ProductCard({ product }: { product: any }) {
         </DialogContent>
       </Dialog>
 
-      {/* МОДАЛКА ВЫБОРА */}
       <Dialog open={isOrderOpen} onOpenChange={setIsOrderOpen}>
         <DialogContent className="rounded-[2.5rem] p-6 max-w-[95vw] md:max-w-[400px] border-none bg-white font-sans">
           <DialogHeader><DialogTitle className="font-black uppercase text-center text-xl tracking-tighter">{mode === "quick" ? "⚡ БЫСТРЫЙ ЗАКАЗ" : "🛒 В КОРЗИНУ"}</DialogTitle></DialogHeader>
@@ -226,4 +220,4 @@ export function ProductCard({ product }: { product: any }) {
       </Dialog>
     </Card>
   );
-          }
+      }
