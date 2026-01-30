@@ -1,20 +1,23 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import sitemapRouter from "./routes/sitemap"; // ✅ подключаем маршрут sitemap
+import { fileURLToPath } from "url";
+import { dirname } from "path";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
 
+// Для доступа к rawBody (например, webhook)
 declare module "http" {
   interface IncomingMessage {
     rawBody: unknown;
   }
 }
 
+// JSON и URLencoded
 app.use(
   express.json({
     verify: (req, _res, buf) => {
@@ -22,9 +25,9 @@ app.use(
     },
   }),
 );
-
 app.use(express.urlencoded({ extended: false }));
 
+// Логирование API запросов
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
@@ -32,7 +35,6 @@ export function log(message: string, source = "express") {
     second: "2-digit",
     hour12: true,
   });
-
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
@@ -62,31 +64,18 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // ИСПРАВЛЕНО: Передаем только app. Сервер создается внутри registerRoutes.
+  // 1️⃣ Регистрируем маршруты приложения (API)
   const server = await registerRoutes(app);
 
+  // 2️⃣ Динамический sitemap
+  app.use(sitemapRouter);
+
+  // 3️⃣ Обработка ошибок
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
     res.status(status).json({ message });
   });
 
-  if (process.env.NODE_ENV === "production" || process.env.RAILWAY_ENVIRONMENT) {
-    serveStatic(app);
-  } else {
-    const { setupVite } = await import("./vite");
-    await setupVite(server, app);
-  }
-
-  const port = parseInt(process.env.PORT || "5000", 10);
-  server.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
-    () => {
-      log(`serving on port ${port}`);
-    },
-  );
-})();
+  // 4️⃣ Раздача статических файлов и SPA-роутинг
+  if (process.env.NODE_ENV === "production" || process.env.RAILWAY_ENVIRONMENT
