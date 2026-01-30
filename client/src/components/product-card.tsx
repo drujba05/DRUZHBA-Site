@@ -107,6 +107,20 @@ export function ProductCard({ product }: { product: any }) {
           {product.name}
         </h3>
 
+        {/* --- НОВЫЙ БЛОК ОПИСАНИЯ --- */}
+        {product.description && (
+          <div className="mb-3">
+            <div className="flex items-center gap-2 text-[9px] text-blue-600 font-black uppercase mb-1">
+              <AlignLeft size={12} />
+              <span>Описание</span>
+            </div>
+            <p className="text-[11px] text-slate-500 leading-tight line-clamp-3 italic">
+              {product.description}
+            </p>
+          </div>
+        )}
+        {/* ------------------------- */}
+
         <div className="space-y-1 mb-3">
           <div className="flex items-center gap-2 text-[10px] text-slate-600 font-bold uppercase">
             <Users size={12} className="text-blue-600" />
@@ -125,7 +139,7 @@ export function ProductCard({ product }: { product: any }) {
           )}
         </div>
 
-        {/* Цена и количество пар (Цена за коробку убрана) */}
+        {/* Цена и количество пар */}
         <div className="mt-auto pt-2 border-t border-slate-50">
           <div className="flex items-center justify-between">
             <div className="flex flex-col">
@@ -133,7 +147,6 @@ export function ProductCard({ product }: { product: any }) {
               <span className="text-[9px] font-black text-slate-400 uppercase mt-1 italic tracking-tighter">цена за одну пару</span>
             </div>
             
-            {/* ТЕКСТ О КОЛИЧЕСТВЕ ИЗ АДМИНКИ */}
             <div className="bg-slate-900 px-2.5 py-1.5 rounded-xl shadow-sm">
               <span className="text-[10px] font-black text-white flex items-center gap-1.5 uppercase tracking-tighter">
                 <Box size={12} className="text-blue-400" />
@@ -213,4 +226,4 @@ export function ProductCard({ product }: { product: any }) {
       </Dialog>
     </Card>
   );
-    }
+          }
